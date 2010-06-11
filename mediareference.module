@@ -247,58 +247,68 @@ function mediareference_widget_settings($op, $widget) {
  */
 function mediareference_widget_process($element, $edit, &$form_state, $form) {
 
-  $defaults = $element['#value'];
+  $defaults = $element['#default_value'];
   $field = content_fields($element['#field_name'], $element['#type_name']);
 
-  $element['preview'] = array(
-    '#value' => '<div>Preview' . $defaults['preview'] .'</div>',
-  );
+  $preview = '';
 
-  $element['type'] = array(
-    '#type' => 'hidden',
-    '#value' => $defaults['type'],
-  );
-
-  $element['nid'] = array(
-    '#type' => 'hidden',
-    '#value' => $defaults['nid'],
-  );
-
-  $element['title'] = array(
-    '#title' => t('Title'),
-    '#type' => 'textfield',
-    '#default_value' => $defaults['title'],
-    '#weight' => 1,
-  );
-
-  $element['link'] = array(
-    '#title' => t('Link'),
-    '#type' => 'textfield',
-    '#default_value' => $defaults['link'],
-    '#weight' => 2,
-  );
-
-  $element['color'] = array(
-    '#title' => t('Color'),
-    '#type' => 'textfield',
-    '#default_value' => $defaults['color'],
-    '#weight' => 3,
-  );
-
-  $element['description'] = array(
-    '#title' => t('Description'),
-    '#type' => 'textarea',
-    '#rows' => $field['widget']['rows'],
-    '#cols' => $field['widget']['cols'],
-    '#default_value' => $defaults['description'],
-    '#weight' => 4,
-  );
-
-  if (! empty($field['description_text_processing'])) {
-    $filter = isset($defaults['format']) ? $defaults['format'] : FILTER_FORMAT_DEFAULT;
-    $parents = array_merge($element['#parents'], array('format'));
-    $element['format'] = filter_form($filter, 5, $parents);
+  if (empty($defaults['nid'])) {
+    $preview = 'none <em>(use Browse button to attach some media)</em>';
+    $element['#prefix'] = '<div class="empty-mediareference">';
+    $element['#suffix'] = '</div>';
   }
+  else {
+    $element['type'] = array(
+      '#type' => 'hidden',
+      '#value' => $defaults['type'],
+    );
+
+    $element['nid'] = array(
+      '#type' => 'hidden',
+      '#value' => $defaults['nid'],
+    );
+
+    $element['title'] = array(
+      '#title' => t('Title'),
+      '#type' => 'textfield',
+      '#default_value' => $defaults['title'],
+      '#weight' => 1,
+    );
+
+    $element['link'] = array(
+      '#title' => t('Link'),
+      '#type' => 'textfield',
+      '#default_value' => $defaults['link'],
+      '#weight' => 2,
+    );
+
+    $element['color'] = array(
+      '#title' => t('Color'),
+      '#type' => 'textfield',
+      '#default_value' => $defaults['color'],
+      '#weight' => 3,
+    );
+
+    $element['description'] = array(
+      '#title' => t('Description'),
+      '#type' => 'textarea',
+      '#rows' => $field['widget']['rows'],
+      '#cols' => $field['widget']['cols'],
+      '#default_value' => $defaults['description'],
+      '#weight' => 4,
+    );
+
+    if (! empty($field['description_text_processing'])) {
+      $filter = isset($defaults['format']) ? $defaults['format'] : FILTER_FORMAT_DEFAULT;
+      $parents = array_merge($element['#parents'], array('format'));
+      $element['format'] = filter_form($filter, 5, $parents);
+    }
+  }
+
+  $element['preview'] = array(
+    '#value' => '<div><strong>Preview:</strong> ' . $preview .'</div>',
+    '#weight' => -1,
+  );
 
   /*$element[] = array(
     '#value' => l('Remove', 'mediareference_js/' . $element['#delta'] . '/remove', array('attributes' => array('class' => 'mediareference-remove-button'))),
