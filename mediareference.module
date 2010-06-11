@@ -184,7 +184,7 @@ function mediareference_elements() {
       '#input' => TRUE,
       '#delta' => 0,
       '#process' => array('mediareference_widget_process'),
-      '#autocomplete_path' => FALSE
+      '#autocomplete_path' => FALSE,
     )
   );
 
@@ -309,12 +309,25 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
     '#weight' => 6,
   );
 
+  $field_name_css = str_replace('_', '-', $element['#field_name']);
+
   $element['actions']['remove'] = array(
     '#type' => 'button',
     '#value' => t('Remove'),
     '#ahah' => array(
       'path' => 'mediareference_js/'. $element['#type_name'] .'/'. $element['#field_name'] .'/'. $element['#delta'] . '/remove',
-      'wrapper' => $element['#field_name'] . '_values',
+      'wrapper' => $field_name_css .'-items',
+      'method' => 'replace',
+      'effect' => 'fade',
+    ),
+  );
+
+  $element['actions']['browse'] = array(
+    '#type' => 'button',
+    '#value' => t('Browse'),
+    '#ahah' => array(
+      'path' => 'mediareference_js/'. $element['#type_name'] .'/'. $element['#field_name'] .'/'. $element['#delta'] . '/remove',
+      'wrapper' => $field_name_css .'-items',
       'method' => 'replace',
       'effect' => 'fade',
     ),
@@ -322,6 +335,7 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
 
   // include modalframe support
   modalframe_parent_js();
+
 
   // dpm($element);
 
@@ -347,8 +361,24 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
   $form_state = array('submitted' => FALSE);
   $form = form_get_cache($form_build_id, $form_state);
 
+  // The form that we get from the cache is unbuilt. We need to build it so that
+  // _value callbacks can be executed and $form_state['values'] populated.
+  // We only want to affect $form_state['values'], not the $form itself
+  // (built forms aren't supposed to enter the cache) nor the rest of $form_data,
+  // so we use copies of $form and $form_data.
+  $form_copy = $form;
+  $form_state_copy = $form_state;
+  $form_copy['#post'] = array();
+  form_builder($_POST['form_id'], $form_copy, $form_state_copy);
+  // Just grab the data we need.
+  $form_state['values'] = $form_state_copy['values'];
+  unset($form_copy, $form_state_copy);
+  // Reset cached ids, so that they don't affect the actual form we output.
+  form_clean_id(NULL, TRUE);
+
   // Sort the $form_state['values'] we just built *and* the incoming $_POST data
   // according to d-n-d reordering.
+  $form_state['values'][$field_name] = mediareference_filter_children($form[$field_name]);
   foreach ($_POST[$field_name] as $delta => $item) {
     $form_state['values'][$field_name][$delta]['_weight'] = $item['_weight'];
   }
@@ -359,25 +389,34 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
     unset($form[$field_name][$delta_action]);
     unset($form_state['values'][$field_name][$delta_action]);
     unset($_POST[$field_name][$delta_action]);
-  }
 
-  // reindex form ie. 1,2,4 => 1,2,3
-  $items = mediareference_filter_children($form[$field_name]);
-  $new_key = 0;
-  $bak = array();
-  foreach ($items as $old_key => $item) {
-    if ($old_key != $new_key) {
-      $bak = $form[$field_name][$old_key];
-      unset($form[$field_name][$old_key]);
-      $form[$field_name][$new_key] = $bak;
+    // reindex form ie. 1,2,4 => 1,2,3
+    $items = mediareference_filter_children($form[$field_name]);
+    $new_key = 0;
+    $bak = array();
+    foreach ($items as $old_key => $item) {
+      if ($old_key != $new_key) {
+        $bak = $form[$field_name][$old_key];
+        unset($form[$field_name][$old_key]);
+        $form[$field_name][$new_key] = $bak;
 
-      $bak = $form_state['values'][$field_name][$old_key];
-      unset($form_state['values'][$field_name][$old_key]);
-      $form_state['values'][$field_name][$new_key] = $bak;
+        $bak = $form_state['values'][$field_name][$old_key];
+        unset($form_state['values'][$field_name][$old_key]);
+        $form_state['values'][$field_name][$new_key] = $bak;
+      }
+      $new_key++;
     }
-    $new_key++;
+    unset($bak);
+
+    if (count($items) == 0) {
+      module_load_include('inc', 'content', 'includes/content.node_form');
+      // Build our new form element for the whole field, asking for one more element.
+      $form_state['item_count'] = array($field_name => 0);
+      $form_element = content_field_form($form, $form_state, $field);
+      $form[$field_name][0] = $form_element[$field_name][0];
+    }
   }
-  unset($bak);
+
 
   // Save rebuilded (but unprocessed!) form back to form cache.
   form_set_cache($form_build_id, $form, $form_state);
@@ -388,7 +427,8 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
     '#programmed' => FALSE,
   );
   $form = form_builder($_POST['form_id'], $form, $form_state);
-  $field_form = mediareference_filter_children($form[$field_name], TRUE);
+  $field_form = $form[$field_name];
+  unset($field_form['#prefix'], $field_form['#suffix']);
 
   // If a newly inserted widget contains AHAH behaviors, they normally won't
   // work because AHAH doesn't know about those - it just attaches to the exact
