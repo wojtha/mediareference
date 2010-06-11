@@ -336,7 +336,7 @@ function theme_mediareference_widget(&$element) {
   return theme('form_element', $element, $element['#children']);
 }
 
-function mediareference_widget_js($type_name, $field_name, $delta, $action) {
+function mediareference_widget_js($type_name, $field_name, $delta_action, $action) {
 
   $field = content_fields($field_name, $type_name);
 
@@ -348,10 +348,37 @@ function mediareference_widget_js($type_name, $field_name, $delta, $action) {
   $form_state = array('submitted' => FALSE);
   $form = form_get_cache($form_build_id, $form_state);
 
-  if ($action == 'remove') {
-    unset($form[$field_name][$delta]);
+  // Sort the $form_state['values'] we just built *and* the incoming $_POST data
+  // according to d-n-d reordering.
+  foreach ($_POST[$field_name] as $delta => $item) {
+    $form_state['values'][$field_name][$delta]['_weight'] = $item['_weight'];
   }
-  dpm($form[$field_name]);
+  $form_state['values'][$field_name] = _content_sort_items($field, $form_state['values'][$field_name]);
+  $_POST[$field_name] = _content_sort_items($field, $_POST[$field_name]);
+
+  if ($action == 'remove') {
+    unset($form[$field_name][$delta_action]);
+    unset($form_state['values'][$field_name][$delta_action]);
+    unset($_POST[$field_name][$delta_action]);
+  }
+
+  // reindex form ie. 1,2,4 => 1,2,3
+  $items = mediareference_filter_children($form[$field_name]);
+  $new_key = 0;
+  $bak = array();
+  foreach ($items as $old_key => $item) {
+    if ($old_key != $new_key) {
+      $bak = $form[$field_name][$old_key];
+      unset($form[$field_name][$old_key]);
+      $form[$field_name][$new_key] = $bak;
+
+      $bak = $form_state['values'][$field_name][$old_key];
+      unset($form_state['values'][$field_name][$old_key]);
+      $form_state['values'][$field_name][$new_key] = $bak;
+    }
+    $new_key++;
+  }
+  unset($bak);
 
   // Save rebuilded (but unprocessed!) form back to form cache.
   form_set_cache($form_build_id, $form, $form_state);
@@ -361,14 +388,24 @@ function mediareference_widget_js($type_name, $field_name, $delta, $action) {
     '#post' => $_POST,
     '#programmed' => FALSE,
   );
-  $form = form_builder('ahah_form', $form, $form_state);
-  $subform = mediareference_filter_children($form[$field_name], TRUE);
+  $form = form_builder($_POST['form_id'], $form, $form_state);
+  $field_form = mediareference_filter_children($form[$field_name], TRUE);
 
-  drupal_json(array(
-    'status' => TRUE ,
-    //'data' => drupal_render($subform),
-    'data' => theme('status_messages') . drupal_render($subform),
-  ));
+  // If a newly inserted widget contains AHAH behaviors, they normally won't
+  // work because AHAH doesn't know about those - it just attaches to the exact
+  // form elements that were initially specified in the Drupal.settings object.
+  // The new ones didn't exist then, so we need to update Drupal.settings
+  // by ourselves in order to let AHAH know about those new form elements.
+  $javascript = drupal_add_js(NULL, NULL);
+  $output_js = isset($javascript['setting']) ? '<script type="text/javascript">jQuery.extend(Drupal.settings, '. drupal_to_js(call_user_func_array('array_merge_recursive', $javascript['setting'])) .');</script>' : '';
+
+  $output = theme('status_messages') . drupal_render($field_form) . $output_js;
+
+  // Using drupal_json() breaks filefield's file upload, because the jQuery
+  // Form plugin handles file uploads in a way that is not compatible with
+  // 'text/javascript' response type.
+  $GLOBALS['devel_shutdown'] =  FALSE;
+  print drupal_to_js(array('status' => TRUE, 'data' => $output));
   exit;
 }
 
