@@ -1,0 +1,16 @@
+; $Id: $
+name = MediaReference CCK Field
+description = Defines widget for nodereference field with advanced selecting.
+dependencies[] = content
+dependencies[] = content_copy
+dependencies[] = text
+dependencies[] = number
+dependencies[] = optionwidgets
+dependencies[] = nodereference
+dependencies[] = imagefield
+dependencies[] = imagecache
+dependencies[] = views
+dependencies[] = imagecache
+dependencies[] = lightbox2
+package = CCK
+core = 6.x

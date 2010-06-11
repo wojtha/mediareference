@@ -1,0 +1,38 @@
+<?php
+// $Id$
+/**
+ * @file Notify CCK when this module is enabled, disabled, installed,
+ * and uninstalled so CCK can do any necessary preparation or cleanup.
+ */
+
+/**
+* Implementation of hook_install().
+*/
+function mediareference_install() {
+  drupal_load('module', 'content');
+  content_notify('install', 'mediareference');
+}
+
+/**
+* Implementation of hook_uninstall().
+*/
+function mediareference_uninstall() {
+  drupal_load('module', 'content');
+  content_notify('uninstall', 'mediareference');
+}
+
+/**
+* Implementation of hook_enable().
+*/
+function mediareference_enable() {
+  drupal_load('module', 'content');
+  content_notify('enable', 'mediareference');
+}
+
+/**
+* Implementation of hook_disable().
+*/
+function mediareference_disable() {
+  drupal_load('module', 'content');
+  content_notify('disable', 'mediareference');
+}

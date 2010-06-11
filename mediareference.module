@@ -1,0 +1,399 @@
+<?php
+// $Id: $
+
+/**
+ * @file
+ * Defines a widget for referencing media content from another. With multiple
+ * select a multiple upload features and AJAX interface.
+ *
+ * IMPORTANT! Javascript for admin UI is needed!
+ *
+ * @author
+ * Vojtech Kusy <wojtha@gmail.com>, http://vojtechkusy.com
+ *
+ */
+
+//=========================================
+//    CONFIGURATION
+//=========================================
+
+
+//=========================================
+//    DRUPAL HOOKS
+//=========================================
+
+
+/**
+ * Implementation of hook_menu().
+ */
+function mediareference_menu() {
+  $items = array();
+
+  // arguments: type/field/id/action
+  $items['mediareference_js/%/%/%/%'] = array(
+    'title' => 'Mediareference Ahah Controller' ,
+    'page callback' => 'mediareference_widget_js' ,
+    'page arguments' => array(1, 2, 3, 4),
+    'access arguments' => array('access content') ,
+    'type' => MENU_CALLBACK
+  );
+
+  return $items;
+}
+
+/**
+* Implementation of hook_theme().
+*/
+function mediareference_theme() {
+  return array(
+    // Theme for the widget.
+    'mediareference_widget' => array(
+      'arguments' => array('element' => NULL),
+    ),
+  );
+}
+
+//=========================================
+//    CCK FIELD
+//=========================================
+
+/**
+ * Implementation of CCK hook_field_settings()
+ */
+function mediareference_field_info() {
+  return array(
+    'mediareference' => array(
+      'label' => t('Media reference'),
+      'description' => t('Stores an nodereference, custom title, description, link and color style.'),
+    )
+  );
+}
+
+/**
+ * Implementation of CCK hook_field_settings()
+ */
+function mediareference_field_settings($op, $field) {
+  switch($op) {
+    case 'database columns':
+      $columns = array();
+      $columns += nodereference_field_settings('database columns', $field);
+      $columns['title'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => TRUE, 'default' => '');
+      $columns['description'] = array('type' => 'text', 'not null' => FALSE, 'sortable' => TRUE);
+      $columns['link'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '');
+      $columns['colour'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '');
+      return $columns;
+
+    case 'form':
+      $form = array();
+      $form += nodereference_field_settings('form', $field);
+      $form += array('description_text_processing' => array(
+        '#type' => 'radios',
+        '#title' => t('Text processing for Description'),
+        '#default_value' => is_numeric($field['description_text_processing']) ? $field['description_text_processing'] : 0,
+        '#options' => array(
+            0 => t('Plain text'),
+            1 => t('Filtered text (user selects input format)')
+          ),
+      ));
+      return $form;
+
+    case 'save':
+      $settings = nodereference_field_settings('save', $field);
+      $settings[] = 'description_text_processing';
+      return $settings;
+
+     case 'views data':
+      return nodereference_field_settings('views data', $field);
+  }
+}
+
+/**
+ * Implementation of CCK hook_field()
+ */
+function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
+
+  switch ($op) {
+  	case 'sanitize':
+      foreach ($items as $delta => $item) {
+        foreach ($item as $col => $data) {
+          // process description field
+          if ($col === 'description') {
+            $is_plain = empty($field['description_text_processing']);
+            if ($is_plain) {
+              $data = check_plain($data);
+            }
+            else {
+              $check_access = is_null($node) || (isset($node->build_mode) && $node->build_mode == NODE_BUILD_PREVIEW);
+              $data = check_markup($data, $item['format'], $check_access);
+            }
+          }
+
+          $items[$delta]['safe_' . $col] = check_plain($data);
+        }
+      }
+  	break;
+
+    case 'validate':
+      if (is_array($items)) {
+        foreach ($items as $delta => $item) {
+          if ($item['link'] != '' && !valid_url(trim($item['link']))) {
+            form_set_error($field['field_name'],t('Link "%url" is not a valid link.', array('%url' => $item['link'])));
+          }
+        }
+     }
+     break;
+  }
+
+  // provide all operations also on nodereference field
+  nodereference_field($op, $node, $field, $items, $teaser, $page);
+}
+
+/**
+ * Implementation of CCK hook_content_is_empty()
+ */
+function mediareference_content_is_empty($item, $field) {
+  return nodereference_content_is_empty($item, $field);
+}
+
+//=========================================
+//    CCK WIDGET
+//=========================================
+
+/**
+ * Implementation of CCK hook_widget_info()
+ */
+function mediareference_widget_info() {
+  return array(
+    'mediareference_widget' => array(
+      'label' => t('Mediareference'),
+      'field types' => array('mediareference'),
+      'multiple values' => CONTENT_HANDLE_CORE,
+      'callbacks' => array('default value' => CONTENT_CALLBACK_CUSTOM),
+      'description' => t('An edit widget for media nodereference fields that allows upload/preview of the media content and its description.' ),
+    ),
+  );
+}
+
+/**
+ * Implementation of FAPI hook_elements()
+ */
+function mediareference_elements() {
+
+  // use nodereference_autocomplete widget as a base
+  $nodereference_elements = nodereference_elements();
+  $elements = array(
+    'mediareference_widget' => $nodereference_elements['nodereference_autocomplete']
+  );
+  // alter widget process information - add our processing functions
+  $elements['mediareference_widget']['#process'][] = 'mediareference_widget_process';
+  $elements['mediareference_widget']['#element_validate'][] = 'mediareference_widget_validate';
+
+  return $elements;
+}
+
+/**
+ * Implementation of hook_widget()
+ */
+function mediareference_widget(&$form, &$form_state, $field, $items, $delta = 0) {
+  dpm($items);
+  // Value callback taken from nodereference_widget - type: nodereference_autocomplete.
+  $element = array(
+    '#type' => $field['widget']['type'],
+    '#default_value' => isset($items[$delta]) ? $items[$delta] : NULL,
+    // '#value_callback' => 'nodereference_autocomplete_value',
+  );
+
+  return $element;
+}
+
+/**
+ * Implementation of hook_widget_settings()
+ */
+function mediareference_widget_settings($op, $widget) {
+  switch ($op) {
+    case 'form':
+      $form = array();
+
+      $rows = (isset($widget['rows']) && is_numeric($widget['rows'])) ? $widget['rows'] : 5;
+      $form['rows'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Number of rows in Description field'),
+        '#default_value' => $rows,
+        '#element_validate' => array('_text_widget_settings_row_validate'),
+        '#required' => TRUE,
+        '#weight' => 8,
+      );
+
+      $cols = (isset($widget['cols']) && is_numeric($widget['cols'])) ? $widget['cols'] : 40;
+      $form['cols'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Number of columns in Description field'),
+        '#default_value' => $cols,
+        '#element_validate' => array('_text_widget_settings_row_validate'),
+        '#required' => TRUE,
+        '#weight' => 9,
+      );
+      return array_merge($form, nodereference_widget_settings('form', $widget));
+
+    case 'save':
+      $settings = array();
+      $settings[] = 'rows';
+      $settings[] = 'cols';
+      return array_merge($settings, nodereference_widget_settings('save', $widget));
+  }
+}
+
+/**
+ * Process of our FAPI elements/widget
+ */
+function mediareference_widget_process($element, $edit, &$form_state, $form) {
+
+  $defaults = $element['#value'];
+  $field = content_fields($element['#field_name'], $element['#type_name']);
+
+  $element['preview'] = array(
+    '#value' => '<div>Preview' . $defaults['preview'] .'</div>',
+  );
+
+  $element['type'] = array(
+    '#type' => 'hidden',
+    '#value' => $defaults['type'],
+  );
+
+  $element['nid'] = array(
+    '#type' => 'hidden',
+    '#value' => $defaults['nid'],
+  );
+
+  $element['title'] = array(
+    '#title' => t('Title'),
+    '#type' => 'textfield',
+    '#default_value' => $defaults['title'],
+    '#weight' => 1,
+  );
+
+  $element['link'] = array(
+    '#title' => t('Link'),
+    '#type' => 'textfield',
+    '#default_value' => $defaults['link'],
+    '#weight' => 2,
+  );
+
+  $element['color'] = array(
+    '#title' => t('Color'),
+    '#type' => 'textfield',
+    '#default_value' => $defaults['color'],
+    '#weight' => 3,
+  );
+
+  $element['description'] = array(
+    '#title' => t('Description'),
+    '#type' => 'textarea',
+    '#rows' => $field['widget']['rows'],
+    '#cols' => $field['widget']['cols'],
+    '#default_value' => $defaults['description'],
+    '#weight' => 4,
+  );
+
+  if (! empty($field['description_text_processing'])) {
+    $filter = isset($defaults['format']) ? $defaults['format'] : FILTER_FORMAT_DEFAULT;
+    $parents = array_merge($element['#parents'], array('description', 'format'));
+    $element['format'] = filter_form($filter, 5, $parents);
+  }
+
+  /*$element[] = array(
+    '#value' => l('Remove', 'mediareference_js/' . $element['#delta'] . '/remove', array('attributes' => array('class' => 'mediareference-remove-button'))),
+    '#weight' => 6,
+  );*/
+
+  $element['actions'] = array(
+    '#weight' => 6,
+  );
+
+  $element['actions']['remove'] = array(
+    '#type' => 'button',
+    '#value' => t('Remove'),
+    '#ahah' => array(
+      'path' => 'mediareference_js/'. $element['#type_name'] .'/'. $element['#field_name'] .'/'. $element['#delta'] . '/remove',
+      'wrapper' => $element['#field_name'] . '_values',
+      'method' => 'replace',
+      'effect' => 'fade',
+    ),
+  );
+
+  // include modalframe support
+  modalframe_parent_js();
+
+  // dpm($element);
+
+  return $element;
+}
+
+/**
+ * Implementation of hook theme_WIDGET()
+ */
+function theme_mediareference_widget(&$element) {
+  return theme('form_element', $element, $element['#children']);
+}
+
+function mediareference_widget_js($type_name, $field_name, $delta, $action) {
+
+  $field = content_fields($field_name, $type_name);
+
+  // Add the new elements to the stored form. Without adding the element
+  // to the form, Drupal is not aware of this new elements existence and
+  // will not process it. We retreive the cached form, add the element,
+  // and resave.
+  $form_build_id = $_POST['form_build_id'];
+  $form_state = array('submitted' => FALSE);
+  $form = form_get_cache($form_build_id, $form_state);
+
+  if ($action == 'remove') {
+    unset($form[$field_name][$delta]);
+  }
+  dpm($form[$field_name]);
+
+  // Save rebuilded (but unprocessed!) form back to form cache.
+  form_set_cache($form_build_id, $form, $form_state);
+
+  // Rebuild the form, filter only needed elements and render the new output
+  $form += array(
+    '#post' => $_POST,
+    '#programmed' => FALSE,
+  );
+  $form = form_builder('ahah_form', $form, $form_state);
+  $subform = mediareference_filter_children($form[$field_name], TRUE);
+
+  drupal_json(array(
+    'status' => TRUE ,
+    //'data' => drupal_render($subform),
+    'data' => theme('status_messages') . drupal_render($subform),
+  ));
+  exit;
+}
+
+//=====================================
+//   HELPERS
+//=====================================
+
+/**
+ * Filter children delta elements
+ *
+ * @param array $element
+ * @param bool $attributes
+ * @return
+ * element children (delta items)
+ */
+function mediareference_filter_children(&$element, $attributes = FALSE) {
+  $children = array();
+
+  if (is_array($element) && count($element)) {
+    foreach ($element as $key => $value) {
+      if (is_numeric($key) || ($attributes && $key[0] == '#')) {
+        $children[$key] = $value;
+      }
+    }
+  }
+
+  return $children;
+}
