@@ -179,14 +179,14 @@ function mediareference_widget_info() {
  */
 function mediareference_elements() {
 
-  // use nodereference_autocomplete widget as a base
-  $nodereference_elements = nodereference_elements();
   $elements = array(
-    'mediareference_widget' => $nodereference_elements['nodereference_autocomplete']
+    'mediareference_widget' => array(
+      '#input' => TRUE,
+      '#delta' => 0,
+      '#process' => array('mediareference_widget_process'),
+      '#autocomplete_path' => FALSE
+    )
   );
-  // alter widget process information - add our processing functions
-  $elements['mediareference_widget']['#process'][] = 'mediareference_widget_process';
-  $elements['mediareference_widget']['#element_validate'][] = 'mediareference_widget_validate';
 
   return $elements;
 }
@@ -195,7 +195,6 @@ function mediareference_elements() {
  * Implementation of hook_widget()
  */
 function mediareference_widget(&$form, &$form_state, $field, $items, $delta = 0) {
-  dpm($items);
   // Value callback taken from nodereference_widget - type: nodereference_autocomplete.
   $element = array(
     '#type' => $field['widget']['type'],
@@ -297,7 +296,7 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
 
   if (! empty($field['description_text_processing'])) {
     $filter = isset($defaults['format']) ? $defaults['format'] : FILTER_FORMAT_DEFAULT;
-    $parents = array_merge($element['#parents'], array('description', 'format'));
+    $parents = array_merge($element['#parents'], array('format'));
     $element['format'] = filter_form($filter, 5, $parents);
   }
 
@@ -399,7 +398,8 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
   $javascript = drupal_add_js(NULL, NULL);
   $output_js = isset($javascript['setting']) ? '<script type="text/javascript">jQuery.extend(Drupal.settings, '. drupal_to_js(call_user_func_array('array_merge_recursive', $javascript['setting'])) .');</script>' : '';
 
-  $output = theme('status_messages') . drupal_render($field_form) . $output_js;
+  $output = theme('status_messages');
+  $output .= drupal_render($field_form) . $output_js;
 
   // Using drupal_json() breaks filefield's file upload, because the jQuery
   // Form plugin handles file uploads in a way that is not compatible with
