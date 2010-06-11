@@ -199,10 +199,29 @@ function mediareference_widget(&$form, &$form_state, $field, $items, $delta = 0)
   $element = array(
     '#type' => $field['widget']['type'],
     '#default_value' => isset($items[$delta]) ? $items[$delta] : NULL,
-    // '#value_callback' => 'nodereference_autocomplete_value',
+    '#after_build' => array('mediareference_widget_after_build'),
   );
 
   return $element;
+}
+
+/**
+ * After build FAPI form builder
+ *
+ * We use after build handler because it is load always, even when form is loaded from cache.
+ */
+function mediareference_widget_after_build($form, &$form_state) {
+  static $added = FALSE;
+
+  if (!$added) {
+    $path = drupal_get_path('module', 'mediareference');
+    drupal_add_css($path .'/mediareference.css');
+    drupal_add_js($path .'/mediareference.js');
+
+    $added = TRUE;
+  }
+
+  return $form;
 }
 
 /**
