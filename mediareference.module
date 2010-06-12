@@ -37,6 +37,13 @@ function mediareference_menu() {
     'access arguments' => array('access content') ,
     'type' => MENU_CALLBACK
   );
+  $items['mediabrowser'] = array(
+    'title' => 'Mediabrowser',
+    'page callback' => 'mediareference_browser' ,
+    'page arguments' => array(),
+    'access arguments' => array('access content') ,
+    'type' => MENU_CALLBACK
+  );
 
   return $items;
 }
@@ -378,6 +385,10 @@ function theme_mediareference_widget(&$element) {
   return theme('form_element', $element, $element['#children']);
 }
 
+//=====================================
+//   MENU CALLBACKS
+//=====================================
+
 function mediareference_widget_js($type_name, $field_name, $delta_action, $action) {
 
   $field = content_fields($field_name, $type_name);
@@ -477,6 +488,27 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
   print drupal_to_js(array('status' => TRUE, 'data' => $output));
   exit;
 }
+
+
+//=====================================
+//   MENU CALLBACKS
+//=====================================
+
+function mediareference_browser() {
+  $output = '';
+
+  // add modalframe child scripts and styles
+  modalframe_child_js();
+
+  $path = drupal_get_path('module', 'mediareference');
+  drupal_add_css($path .'/mediareference.css');
+  drupal_add_js($path . '/mediareference.js');
+
+  $output .= views_embed_view('mediabrowser', 'default');
+
+  return $output;
+}
+
 
 //=====================================
 //   HELPERS
