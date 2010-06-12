@@ -40,6 +40,8 @@
 
 Drupal.behaviors.mediareference = function(context) {
 
+  //$('div.view-mediabrowser a').addClass('ctools-use-dialog');
+
 
   // This is our onSubmit callback that will be called from the child window
   // when it is requested by a call to modalframe_close_dialog() performed
@@ -49,37 +51,26 @@ Drupal.behaviors.mediareference = function(context) {
   }
 
   $('#edit-field-slideshow-0-actions-browse', context).bindIntoStack(0, 'mousedown.override', function(e) {
-//    var id = $(this).attr('rel');
-//    var field_name = $('#' + id).attr('rel');
+  //    var id = $(this).attr('rel');
+  //    var field_name = $('#' + id).attr('rel');
 
- // Build modal frame options.
-  var modalOptions = {
-    onSubmit: onSubmitCallback,
-    url: Drupal.settings.basePath + 'mediabrowser',
-    width: 950,
-    height: 600,
-    autoFit: false
-  };
+   // Build modal frame options.
+    var modalOptions = {
+      onSubmit: onSubmitCallback,
+      url: Drupal.settings.basePath + 'mediabrowser',
+      width: 950,
+      height: 600,
+      autoFit: false
+    };
 
-  // Open the modal frame dialog.
-  Drupal.modalFrame.open(modalOptions);
+    // Open the modal frame dialog.
+    Drupal.modalFrame.open(modalOptions);
 
-//    e.stopImmediatePropagation();
+  //    e.stopImmediatePropagation();
 
   // Prevent default action of the link click event.
   return false;
-});
-
-
-
-
-  // Try to obtain the dialog size from the className of the element.
-  var regExp = /^.*modalframe-example-size\[\s*([0-9]*\s*,\s*[0-9]*)\s*\].*$/;
-  if (typeof element.className == 'string' && regExp.test(element.className)) {
-    var size = element.className.replace(regExp, '$1').split(',');
-    modalOptions.width = parseInt(size[0].replace(/ /g, ''));
-    modalOptions.height = parseInt(size[1].replace(/ /g, ''));
-  }
+  });
 
 
 };
