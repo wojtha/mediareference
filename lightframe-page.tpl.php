@@ -1,5 +1,5 @@
 <?php
-// $Id: lightframe-page.tpl.php,v 1.1.2.4 2009/06/19 16:20:04 markuspetrux Exp $
+// $Id: $
 
 /**
  * @file
