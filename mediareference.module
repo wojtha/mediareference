@@ -17,6 +17,23 @@
 //    CONFIGURATION
 //=========================================
 
+// Image
+define('MEDIAREF_IMAGE_TYPE', 'image');
+define('MEDIAREF_IMAGE_THUMBNAIL', 'field_image');
+define('MEDIAREF_IMAGE_FIELDS', 'title|description|link');
+
+// Video
+define('MEDIAREF_VIDEO_TYPE', 'video');
+define('MEDIAREF_VIDEO_THUMBNAIL', 'field_image');
+define('MEDIAREF_VIDEO_FIELDS', 'title|description');
+
+// Slideshow
+define('MEDIAREF_SLIDESHOW_TYPE', 'slideshow');
+define('MEDIAREF_SLIDESHOW_THUMBNAIL', 'field_image');
+define('MEDIAREF_SLIDESHOW_FIELDS', 'title|description|link|color');
+
+// Imagecache
+define('MEDIAREF_IMAGECACHE_THUMB_PROFILE', 'mediareference_thumbs');
 
 //=========================================
 //    DRUPAL HOOKS
@@ -37,94 +54,55 @@ function mediareference_menu() {
     'access arguments' => array('access content') ,
     'type' => MENU_CALLBACK
   );
-  $items['mediabrowser/%ctools_js'] = array(
+  $items['mediabrowser'] = array(
     'title' => 'Mediabrowser',
     'page callback' => 'mediareference_browser' ,
-    'page arguments' => array(1),
     'access arguments' => array('access content') ,
     'type' => MENU_CALLBACK
   );
-  $path_node = drupal_get_path('module', 'node');
-  foreach (node_get_types('types', NULL, TRUE) as $type) {
-    $type_url_str = str_replace('_', '-', $type->type);
-    $items['node/add/'. $type_url_str . '/%ctools_js'] = array(
-      'title' => drupal_ucfirst($type->name),
-      'title callback' => 'check_plain',
-      'page callback' => 'mediareference_node_add',
-      'page arguments' => array(2, 3),
-      'access callback' => 'node_access',
-      'access arguments' => array('create', $type->type),
-      'description' => $type->description,
-      'file path' => $path_node,
-      'file' => 'node.pages.inc',
-    );
-  }
-  $items['node/%node/edit/%ctools_js'] = array(
-    'title' => 'Edit',
-    'page callback' => 'mediareference_node_page_edit',
-    'page arguments' => array(1, 3),
-    'access callback' => 'node_access',
-    'access arguments' => array('update', 1),
-    'weight' => 1,
-    'file path' => $path_node,
-    'file' => 'node.pages.inc',
-    'type' => MENU_LOCAL_TASK,
-  );
-  $items['node/%node/delete/%ctools_js'] = array(
-    'title' => 'Delete',
-    'page callback' => 'dialog_get_form',
-    'page arguments' => array('node_delete_confirm', 1, 3),
-    'access callback' => 'node_access',
-    'access arguments' => array('delete', 1),
-    'file path' => $path_node,
-    'file' => 'node.pages.inc',
-    'weight' => 1,
-    'type' => MENU_CALLBACK,
+  $items['lightframe/close'] = array(
+    'title' => 'Close Lightframe',
+    'page callback' => 'mediareference_lightframe_close_callback' ,
+    'access arguments' => array('access content') ,
+    'type' => MENU_CALLBACK
   );
 
   return $items;
 }
 
-/**
- * Menu callback; presents the node editing form, or redirects to delete confirmation.
- */
-function mediareference_node_page_edit($node, $ctools_js) {
-  drupal_set_title(check_plain($node->title));
-  return dialog_get_form($node->type .'_node_form', $node, $ctools_js);
-}
-
-/**
- * Present a node submission form or a set of links to such forms.
- */
-function mediareference_node_add($type, $ctools_js) {
-  global $user;
-
-  $types = node_get_types();
-  $type = isset($type) ? str_replace('-', '_', $type) : NULL;
-  // If a node type has been specified, validate its existence.
-  if (isset($types[$type]) && node_access('create', $type)) {
-    // Initialize settings:
-    $node = array('uid' => $user->uid, 'name' => (isset($user->name) ? $user->name : ''), 'type' => $type, 'language' => '');
-
-    drupal_set_title(t('Create @name', array('@name' => $types[$type]->name)));
-    $output = dialog_get_form($type .'_node_form', $node, $ctools_js);
-  }
-
-  return $output;
-}
-
-/**
- * Implementation of hook_form_alter().
- */
 function mediareference_form_alter(&$form, $form_state, $form_id) {
-  // Specify the submit buttons to be used as the dialog buttons.
-  if (!empty($form_state['ajax']) && isset($form['type']) && isset($form['#node']) && $form['type']['#value'] .'_node_form' == $form_id) {
-    $form['buttons']['submit']['#attributes']['class'] = 'ctools-dialog-button';
-    $form['buttons']['preview']['#attributes']['class'] = 'ctools-dialog-button';
-    if (isset($form['buttons']['delete'])) {
-      $form['buttons']['delete']['#attributes']['class'] = 'ctools-dialog-button';
+  // Here we simply want to install a form after_build callback.
+  // if (isset($form['type']) && isset($form['#node']) && $form['type']['#value'] .'_node_form' == $form_id) {
+  if (strpos($_GET['q'], 'lightframe') !== FALSE) {
+    if (!isset($form['#after_build'])) {
+      $form['#after_build'] = array();
     }
+    $form['#after_build'][] = 'mediareference_lightframe_form_after_build';
   }
+
+  /*if ($form_id == 'views_exposed_form') {
+    $form['filters'] = array(
+      '#type' => 'fieldset',
+      '#title' => 'Filters',
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+
+    foreach ($form as $key => $element) {
+      if ($key{0} === '#' || in_array($key, array('form_id', 'form_build_id', 'form_token', 'filters'))) {
+        continue;
+      }
+      $form['filters'][$key] = $element;
+      unset($form[$key]);
+    }
+    dpm($form);
+  }*/
+
+}
+
+function mediareference_lightframe_form_after_build($form, &$form_state) {
+  mediareference_lightframe_child_js();
+  return $form;
 }
 
 /**
@@ -136,6 +114,27 @@ function mediareference_theme() {
     'mediareference_widget' => array(
       'arguments' => array('element' => NULL),
     ),
+  );
+}
+
+/**
+ * Implementation of hook_imagecache_default_presets()
+ */
+function mediareference_imagecache_default_presets() {
+  $presets = array();
+  $presets['mediareference_thumbs'] = array(
+    'presetname' => 'mediareference_thumbs',
+    'actions' => array(
+      0 => array(
+        'weight' => '0',
+        'module' => 'imagecache',
+        'action' => 'imagecache_scale_and_crop',
+        'data' => array(
+          'width' => '90',
+          'height' => '90'
+        )
+      )
+    )
   );
 }
 
@@ -201,6 +200,7 @@ function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
   switch ($op) {
     case 'sanitize':
       foreach ($items as $delta => $item) {
+        unset($item['actions']);
         foreach ($item as $col => $data) {
           // process description field
           if ($col === 'description') {
@@ -360,13 +360,51 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
 
   if (empty($defaults['nid'])) {
     $preview = 'none <em>(use Browse button to attach some media)</em>';
-    $element['#prefix'] = '<div class="empty-mediareference">';
+    $element['#prefix'] = '<div class="mediareference empty">';
     $element['#suffix'] = '</div>';
   }
   else {
+
+    if (empty($defaults['thumbnail']) || empty($defaults['title']) || empty($defaults['type'])) {
+      $node = node_load(array('nid' => $defaults['nid']));
+      $defaults['type'] = !empty($defaults['type']) ? $defaults['type'] : $node->type;
+      $defaults['title'] = !empty($defaults['title']) ? $defaults['title'] : $node->title;
+    }
+
+    $type = $defaults['type'];
+    $definition = '';
+    $thumb_field = '';
+    switch ($type) {
+      case MEDIAREF_IMAGE_TYPE:
+        $definition = MEDIAREF_IMAGE_FIELDS;
+        $thumb_field = MEDIAREF_IMAGE_THUMBNAIL;
+        break;
+      case MEDIAREF_VIDEO_TYPE:
+        $definition = MEDIAREF_VIDEO_FIELDS;
+        $thumb_field = MEDIAREF_VIDEO_THUMBNAIL;
+        break;
+      case MEDIAREF_SLIDESHOW_TYPE:
+        $definition = MEDIAREF_SLIDESHOW_FIELDS;
+        $thumb_field = MEDIAREF_SLIDESHOW_THUMBNAIL;
+        break;
+    }
+
+    if (empty($defaults['thumbnail'])) {
+      $defaults['thumbnail'] = $node->{$thumb_field}[0]['filepath'];
+    }
+    $preview = theme('imagecache', MEDIAREF_IMAGECACHE_THUMB_PROFILE, $defaults['thumbnail']);
+
+    $element['#prefix'] = '<div class="mediareference '. $type .'">';
+    $element['#suffix'] = '</div>';
+
     $element['type'] = array(
       '#type' => 'hidden',
       '#value' => $defaults['type'],
+    );
+
+    $element['thumbnail'] = array(
+      '#type' => 'hidden',
+      '#value' => $defaults['thumbnail'],
     );
 
     $element['nid'] = array(
@@ -374,40 +412,48 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
       '#value' => $defaults['nid'],
     );
 
-    $element['title'] = array(
-      '#title' => t('Title'),
-      '#type' => 'textfield',
-      '#default_value' => $defaults['title'],
-      '#weight' => 1,
-    );
+    if (strpos($definition, 'title') !== FALSE) {
+      $element['title'] = array(
+        '#title' => t('Title'),
+        '#type' => 'textfield',
+        '#default_value' => $defaults['title'],
+        '#weight' => 1,
+      );
+    }
 
-    $element['link'] = array(
-      '#title' => t('Link'),
-      '#type' => 'textfield',
-      '#default_value' => $defaults['link'],
-      '#weight' => 2,
-    );
+    if (strpos($definition, 'link') !== FALSE) {
+      $element['link'] = array(
+        '#title' => t('Link'),
+        '#type' => 'textfield',
+        '#default_value' => $defaults['link'],
+        '#weight' => 2,
+      );
+    }
 
-    $element['color'] = array(
-      '#title' => t('Color'),
-      '#type' => 'textfield',
-      '#default_value' => $defaults['color'],
-      '#weight' => 3,
-    );
+    if (strpos($definition, 'color') !== FALSE) {
+      $element['color'] = array(
+        '#title' => t('Color'),
+        '#type' => 'textfield',
+        '#default_value' => $defaults['color'],
+        '#weight' => 3,
+      );
+    }
 
-    $element['description'] = array(
-      '#title' => t('Description'),
-      '#type' => 'textarea',
-      '#rows' => $field['widget']['rows'],
-      '#cols' => $field['widget']['cols'],
-      '#default_value' => $defaults['description'],
-      '#weight' => 4,
-    );
+    if (strpos($definition, 'description') !== FALSE) {
+      $element['description'] = array(
+        '#title' => t('Description'),
+        '#type' => 'textarea',
+        '#rows' => $field['widget']['rows'],
+        '#cols' => $field['widget']['cols'],
+        '#default_value' => $defaults['description'],
+        '#weight' => 4,
+      );
 
-    if (! empty($field['description_text_processing'])) {
-      $filter = isset($defaults['format']) ? $defaults['format'] : FILTER_FORMAT_DEFAULT;
-      $parents = array_merge($element['#parents'], array('format'));
-      $element['format'] = filter_form($filter, 5, $parents);
+      if (! empty($field['description_text_processing'])) {
+        $filter = isset($defaults['format']) ? $defaults['format'] : FILTER_FORMAT_DEFAULT;
+        $parents = array_merge($element['#parents'], array('format'));
+        $element['format'] = filter_form($filter, 5, $parents);
+      }
     }
   }
 
@@ -415,11 +461,6 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
     '#value' => '<div><strong>Preview:</strong> ' . $preview .'</div>',
     '#weight' => -1,
   );
-
-  /*$element[] = array(
-    '#value' => l('Remove', 'mediareference_js/' . $element['#delta'] . '/remove', array('attributes' => array('class' => 'mediareference-remove-button'))),
-    '#weight' => 6,
-  );*/
 
   $element['actions'] = array(
     '#weight' => 6,
@@ -442,20 +483,13 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
     '#type' => 'button',
     '#value' => t('Browse'),
     '#ahah' => array(
-      'path' => 'mediareference_js/'. $element['#type_name'] .'/'. $element['#field_name'] .'/'. $element['#delta'] . '/remove',
+      'path' => 'mediareference_js/'. $element['#type_name'] .'/'. $element['#field_name'] .'/'. $element['#delta'] . '/update',
       'wrapper' => $field_name_css .'-items',
       'method' => 'replace',
       'effect' => 'fade',
     ),
+    '#attributes' => array('class' => 'mediareference-browse-button'),
   );
-
-  $element['actions'][] = array(
-    '#value' => l(t('Browse'), 'mediabrowser/nojs', array('query' => 'page=1', 'attributes' => array('class' => 'ctools-use-dialog'))),
-  );
-
-  // include modalframe support
-  // modalframe_parent_js();
-
 
   // dpm($element);
 
@@ -541,6 +575,23 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
     }
   }
 
+  if ($action == 'update') {
+    if (isset($_SESSION['lightframe']) && isset($_SESSION['lightframe']['nid']) && ($nid = intval($_SESSION['lightframe']['nid']))) {
+      $node = node_load(array('nid' => $nid));
+      if ($node) {
+        $form_state['values'][$field_name][$delta_action]['nid'] = $nid;
+        $form_state['values'][$field_name][$delta_action]['type'] = $node->type;
+        $form_state['values'][$field_name][$delta_action]['title'] = $node->title;
+        $_POST[$field_name][$delta] = $form_state['values'][$field_name][$delta_action];
+
+        module_load_include('inc', 'content', 'includes/content.node_form');
+        $form_element = content_field_form($form, $form_state, $field);
+        // Let other modules alter it.
+        drupal_alter('form', $form_element, array(), 'mediareference_widget_js');
+        $form[$field_name][$delta_action] = $form_element[$field_name][$delta_action];
+      }
+    }
+  }
 
   // Save rebuilded (but unprocessed!) form back to form cache.
   form_set_cache($form_build_id, $form, $form_state);
@@ -574,72 +625,6 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
 }
 
 
-//=====================================
-//   MENU CALLBACKS
-//=====================================
-
-function mediareference_browser($ajax = FALSE) {
-  $output = '';
-
-  // add modalframe child scripts and styles
-  // modalframe_child_js();
-  dialog_add_js();
-
-  $path = drupal_get_path('module', 'mediareference');
-  drupal_add_css($path .'/mediareference.css');
-  drupal_add_js($path . '/mediareference.js');
-
-
-
-  $view = views_get_view('mediabrowser');
-  $view->override_path = $_GET['q'];
-  $view->set_display('default');
-
-  // Get the results.
-  $output .= $view->preview('noexposed');
-
-  if ($ajax) {
-    $options = array(
-      'height' => '75%',
-      'width' => '75%',
-      'position' => 'center',
-    );
-    // render and exits
-    dialog_ajax_render('Media Browser', $output, $options);
-  }
-
-  return $output;
-}
-
-
-function render_exposed_separately() {
-  $view = views_get_view('mediabrowser');
-  $view->override_path = $_GET['q'];
-  // Switch to our special view with the exposed form stripped
-  $view->new_display('mediareference_noexposed', 'No Expose', 'noexposed');
-  // Get the results.
-  $output .= $view->preview('noexposed');
-
-  $view->set_display('default');
-  $view->execute();
-  $form_state = array(
-    'view' => $view,
-    'display' => $view->display_handler->display,
-    'method' => 'get',
-    'rerender' => TRUE,
-    'no_redirect' => TRUE,
-  );
-
-  // Render form alone
-  $output .= drupal_build_form('views_exposed_form', $form_state);
-}
-
-function mediareference_browser_form(&$form_state) {
-  $form = array();
-  $form[] = array('#value' => views_embed_view('mediabrowser', 'default'));
-  return $form;
-}
-
 /**
 * Implementation of hook_views_api().
 *
@@ -651,6 +636,62 @@ function mediareference_views_api() {
     'path' => drupal_get_path('module','mediareference') . '/views',
   );
 }
+
+/**
+ * Implementation of hook_views_embed_form().
+ */
+function mediareference_views_embed_form() {
+  return array(
+    'mediareference_attach_form' => t('Attach reference to content'),
+  );
+}
+
+//=====================================
+//   MENU CALLBACKS
+//=====================================
+
+function mediareference_browser() {
+  $output = '';
+
+  mediareference_lightframe_child_js();
+
+  $view = views_get_view('mediabrowser');
+  $view->override_path = $_GET['q'];
+  $view->set_display('default');
+
+  // Get the results.
+  $output .= $view->preview();
+
+  return $output;
+}
+
+/**
+ * Views embed form - "Attach" button
+ */
+function mediareference_attach_form(&$form_state, $fields) {
+  $form = array();
+
+  $form['nid'] = array(
+    '#type' => 'hidden',
+    '#value' => intval($fields->nid)
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Attach'
+  );
+
+  return $form;
+}
+
+/**
+ * Views embed form submit handler - "Add to context" button
+ */
+function mediareference_attach_form_submit($form, &$form_state) {
+  if ($form_state['values']['op'] == $form_state['values']['submit']) {
+    mediareference_lightframe_close($form_state, array('nid' => $form_state['values']['nid']));
+  }
+}
+
 
 //=====================================
 //   HELPERS
@@ -677,3 +718,84 @@ function mediareference_filter_children(&$element, $attributes = FALSE) {
 
   return $children;
 }
+
+/**
+ * Add javascript and stylesheets to the child page.
+ */
+function mediareference_lightframe_child_js() {
+  static $processed = FALSE;
+  // Make sure external resources are not included more than once.
+  if ($processed) {
+    return;
+  }
+  $processed = TRUE;
+
+  // Disable admin_menu, admin module output and similar modules, which
+  // is something child windows don't need.
+  module_invoke_all('suppress');
+
+  if (module_exists('onbeforeunload')) {
+    onbeforeunload_add_js();
+  }
+
+  $module_path = drupal_get_path('module', 'mediareference');
+  drupal_add_css($module_path .'/mediareference.css');
+  drupal_add_js($module_path .'/mediareference.js');
+
+  // Tell Drupal's theme system to use the Modal Frame template.
+  $GLOBALS['lightframe_page_template'] = TRUE;
+}
+
+/**
+ * Close lightframe modal.
+ *
+ * @param $args
+ *   An optional array of arguments that will be forwarded to the client
+ *   side onSubmit callback.
+ */
+function mediareference_lightframe_close(&$form_state, $args = array()) {
+  $form_state['redirect'] = 'lightframe/close';
+  $_SESSION['lightframe'] = $args;
+}
+
+/**
+ * Close lightframe modal menu callback.
+ */
+function mediareference_lightframe_close_callback() {
+  mediareference_lightframe_child_js();
+  drupal_add_js('parent.LightframeUpdate();parent.Lightbox.end("forceClose");', 'inline');
+  return '';
+}
+
+function mediareference_theme_registry_alter(&$theme_registry) {
+  if (isset($theme_registry['page']) && isset($theme_registry['page']['theme paths'])) {
+    $module_path = drupal_get_path('module', 'mediareference');
+    array_unshift($theme_registry['page']['theme paths'], $module_path);
+    array_unshift($theme_registry['page']['preprocess functions'], 'mediareference_pre_preprocess_page');
+  }
+}
+
+/**
+ * Preprocess template variables for page.tpl.php - step 1.
+ *
+ * Performance enhancement: prevent template_preprocess_page() from generating
+ * sidebar blocks when a modal frame has been requested.
+ */
+function mediareference_pre_preprocess_page(&$variables) {
+  if (!empty($GLOBALS['lightframe_page_template'])) {
+    $variables['show_blocks'] = FALSE;
+  }
+}
+
+/**
+ * Preprocess template variables for page.tpl.php - step 2.
+ */
+function mediareference_preprocess_page(&$variables) {
+  if (!empty($GLOBALS['lightframe_page_template'])) {
+    if (!isset($variables['template_files'])) {
+      $variables['template_files'] = array();
+    }
+    $variables['template_files'][] = 'lightframe-page';
+  }
+}
+
