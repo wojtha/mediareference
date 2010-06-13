@@ -25,18 +25,21 @@
 <?php print $styles; ?>
 <?php print $scripts; ?>
 </head>
-<body>
-<div class="modalframe-page-wrapper">
-  <div class="modalframe-page-container clear-block">
-    <div class="modalframe-page-content">
-<?php if ($show_messages && $messages): print $messages; endif; ?>
+<body class="lightframe-modal">
+<?php if (!empty($navigate_back_url)) { ?>
+  <div class="lightframe-navigate-back"><a href="<?php print $navigate_back_url; ?>" title="Navigate back">&lt;&lt;&lt;&nbsp;Back</a></div>
+<?php } ?>
+<?php if (!empty($title)) { ?>
+  <h2><?php print $title; ?></h2>
+<?php } ?>
+<?php if ($show_messages && $messages) print $messages; ?>
 <?php print $help; ?>
 <div class="clear-block">
   <?php print $content; ?>
 </div>
-    </div>
-  </div>
-</div>
+<?php if (!empty($navigate_back_url)) { ?>
+  <div class="lightframe-navigate-back"><a href="<?php print $navigate_back_url; ?>" title="Navigate back">&lt;&lt;&lt;&nbsp;Back</a></div>
+<?php } ?>
 <?php print $closure; ?>
 </body>
 </html>

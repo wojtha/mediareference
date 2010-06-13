@@ -83,18 +83,7 @@ function mediareference_menu() {
 
 function mediareference_form_alter(&$form, $form_state, $form_id) {
   // Here we simply want to install a form after_build callback.
-  // if (isset($form['type']) && isset($form['#node']) && $form['type']['#value'] .'_node_form' == $form_id) {
   if (!empty($_REQUEST['lightframe'])) {
-    if (isset($_REQUEST['destination'])) {
-      $form['info_back'] = array(
-        '#value' => '<div>'. l('<<< '. t('Back'), urldecode($_REQUEST['destination'])) .'</div>',
-        '#weight' => -10,
-      );
-    }
-    $form['info_title'] = array(
-      '#value' => '<h2>'. drupal_get_title() .'</h2>',
-      '#weight' => -9,
-    );
     if (!isset($form['#after_build'])) {
       $form['#after_build'] = array();
     }
@@ -354,6 +343,7 @@ function mediareference_preprocess_page(&$variables) {
       $variables['template_files'] = array();
     }
     $variables['template_files'][] = 'lightframe-page';
+    $variables['navigate_back_url'] = (!empty($_REQUEST['destination']) ? url(urldecode($_REQUEST['destination'])) : '');
   }
 }
 
