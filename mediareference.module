@@ -45,6 +45,9 @@ define('MEDIAREF_IMAGECACHE_THUMB_PROFILE', 'mediareference_thumbs');
 function mediareference_init() {
   module_load_include('inc', 'mediareference', 'mediareference.field');
   module_load_include('inc', 'mediareference', 'mediareference.widget');
+  if (!empty($_REQUEST['lightframe'])) {
+    mediareference_lightframe_child_js();
+  }
 }
 
 /**
@@ -81,7 +84,7 @@ function mediareference_menu() {
 function mediareference_form_alter(&$form, $form_state, $form_id) {
   // Here we simply want to install a form after_build callback.
   // if (isset($form['type']) && isset($form['#node']) && $form['type']['#value'] .'_node_form' == $form_id) {
-  if (strpos($_GET['q'], 'lightframe') !== FALSE) {
+  if (!empty($_REQUEST['lightframe'])) {
     if (isset($_REQUEST['destination'])) {
       $form['info_back'] = array(
         '#value' => '<div>'. l('<<< '. t('Back'), urldecode($_REQUEST['destination'])) .'</div>',
@@ -305,6 +308,8 @@ function mediareference_lightframe_child_js() {
 
   // Tell Drupal's theme system to use the Modal Frame template.
   $GLOBALS['lightframe_page_template'] = TRUE;
+
+  drupal_add_js(array('mediareference' =>  array('lightframize' => 1)), 'setting');
 }
 
 /**

@@ -252,7 +252,7 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
       'method' => 'replace',
       'effect' => 'fade',
     ),
-    '#attributes' => array('class' => 'mediareference-browse-button'),
+    '#attributes' => array('class' => 'mrf-browse-button'),
   );
 
   // dpm($element);

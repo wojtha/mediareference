@@ -1,9 +1,14 @@
 // $Id: $
 
-// Event order management
-// http://snipplr.com/view/13556/jquery-event-stack-binder/
-// http://snipplr.com/view/13515/jstack--jquery-event-stack-management/
-
+/**
+ * Custom event listeners order management function
+ *
+ * Let us to place event listener to the first place
+ *
+ * See:
+ * - http://snipplr.com/view/13556/jquery-event-stack-binder/
+ * - http://snipplr.com/view/13515/jstack--jquery-event-stack-management/
+ */
 (function($) {
   $.fn.bindIntoStack = function(pos, namespace, func) {
     var evt = namespace.split('.').shift();
@@ -36,7 +41,7 @@
 
 
 /**
- * Stripped down method Lightbox.start to allow us launch only "Lightframe" programatically
+ * Stripped down method Lightbox.start to allow us launch only "Lightframe" and also do it programatically
  */
 function LightframeStart(href, title, alt, style) {
 
@@ -90,43 +95,66 @@ function LightframeStart(href, title, alt, style) {
   Lightbox.changeData(Lightbox.imageNum);
 };
 
+/**
+ *  Trigger update event on the button which started the lightframe
+ */
 function LightframeUpdate() {
-  if (Drupal.settings.mediareference.lightframe.updateAfterClose) {
-    $(Drupal.settings.mediareference.lightframe.updateAfterClose).trigger('update');
-    Drupal.settings.mediareference.lightframe.updateAfterClose = null;
+  if (Drupal.settings.lightframe.updateAfterClose) {
+    $(Drupal.settings.lightframe.updateAfterClose).trigger('update');
+    Drupal.settings.lightframe.updateAfterClose = null;
   }
 }
 
 // Make sure that namespace exists
 Drupal.settings.mediareference = Drupal.settings.mediareference || {};
-Drupal.settings.mediareference.lightframe = Drupal.settings.mediareference.lightframe || {};
+Drupal.settings.lightframe = Drupal.settings.lightframe || {};
 
-// =========================================
+//==========================================
 // DRUPAL BEHAVIOURS
-// =========================================
+//==========================================
 
 Drupal.behaviors.mediareference = function(context) {
 
-  $('.mediareference-browse-button', context)
+  $('.mrf-browse-button:not(.mrf-processed)', context)
+    .addClass('mrf-processed')
+    .each( function() {
+      // our custom property - a kind of semaphore which disable listeners launch during mousedown event
+      this.mouseDownStopPropagation = 1;
+    })
+    // we are using custom jQuery function to attach our handler to the first place in the event handlers queue
     .bindIntoStack(0, 'mousedown.override', function(e) {
+      // we stop event propagation and bubbling because there is a AHAH binded to this event
+      // Other handlers in queue (including AHAH, can be launched only when setting this.mouseDownStopPropagation to 0 before
       if (this.mouseDownStopPropagation) {
         e.stopImmediatePropagation();
         var href = '/mediabrowser';
         var alt = title = 'Media Browser';
         var style = 'width:900px; height:500px; scrolling:yes; disableCloseClick:false';
         LightframeStart(href, title, alt, style);
-        Drupal.settings.mediareference.lightframe.updateAfterClose = this;
+        // save this to global variable for later use
+        Drupal.settings.lightframe.updateAfterClose = this;
       }
       // Prevent default action of the link click event.
       return false;
     })
+    // our custom event which fires all attached mousedown listeners
     .bind('update', function() {
       this.mouseDownStopPropagation = 0;
       $(this).trigger('mousedown');
       this.mouseDownStopPropagation = 1;
-    })
-    .each( function() {
-      this.mouseDownStopPropagation = 1;
     });
 
+  // In lightframe add "&lightframe=1" to all links on the page
+  if (Drupal.settings.mediareference.lightframize) {
+    $('a:not(.lightframized)', context).each( function() {
+      var link = $(this).attr('href');
+      if (link.search(/\?/) == -1) {
+        $(this).attr('href', link + '?lightframe=1');
+      }
+      else {
+        $(this).attr('href', link + '&lightframe=1');
+      }
+    })
+    .addClass('lightframized');
+  }
 };
