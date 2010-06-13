@@ -30,7 +30,7 @@ define('MEDIAREF_VIDEO_FIELDS', 'title|description');
 // Slideshow
 define('MEDIAREF_SLIDESHOW_TYPE', 'slideshow');
 define('MEDIAREF_SLIDESHOW_THUMBNAIL', 'field_image');
-define('MEDIAREF_SLIDESHOW_FIELDS', 'title|description|link|color');
+define('MEDIAREF_SLIDESHOW_FIELDS', 'title|description|link|colour');
 
 // Imagecache
 define('MEDIAREF_IMAGECACHE_THUMB_PROFILE', 'mediareference_thumbs');

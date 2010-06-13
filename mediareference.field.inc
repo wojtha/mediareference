@@ -33,7 +33,7 @@ function mediareference_field_settings($op, $field) {
       $columns['title'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => TRUE, 'default' => '');
       $columns['description'] = array('type' => 'text', 'not null' => FALSE, 'sortable' => TRUE);
       $columns['link'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '');
-      $columns['colour'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '');
+      $columns['colour'] = array('type' => 'varchar', 'length' => 7, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '');
       return $columns;
 
     case 'form':

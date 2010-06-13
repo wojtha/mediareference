@@ -194,11 +194,11 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
       );
     }
 
-    if (strpos($definition, 'color') !== FALSE) {
-      $element['color'] = array(
+    if (strpos($definition, 'colour') !== FALSE) {
+      $element['colour'] = array(
         '#title' => t('Color'),
-        '#type' => 'textfield',
-        '#default_value' => $defaults['color'],
+        '#type' => 'colorpicker_textfield',
+        '#default_value' => $defaults['colour'],
         '#weight' => 3,
       );
     }
