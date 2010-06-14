@@ -213,8 +213,7 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
 
     if (!empty($defaults['thumbnail'])) {
       if ($imagecache_preset = imagecache_preset($field['widget']['thumbnail_imagecache_preset'])) {
-        $imagecache_preset = $field['widget']['thumbnail_imagecache_preset'];
-        $preview = theme('imagecache', MEDIAREF_IMAGECACHE_THUMB_PROFILE, $defaults['thumbnail']);
+        $preview = theme('imagecache', $imagecache_preset['presetname'], $defaults['thumbnail']);
       }
     }
 
@@ -350,13 +349,13 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
 
   // load the field definition and check if arguments from url is right
   $field = content_fields($field_name, $type_name);
-  if (empty($field)) {
-    drupal_not_found();
+  if (empty($type_name) || empty($field_name) || empty($delta_action) || empty($action) || empty($field)) {
+    return drupal_not_found();
   }
 
   // check access
   if (!user_access("create $type_name content")) {
-    drupal_access_denied();
+    return drupal_access_denied();
   }
 
   // Add the new elements to the stored form. Without adding the element

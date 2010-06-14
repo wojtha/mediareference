@@ -27,27 +27,24 @@ function theme_mediareference_formatter_default($element = NULL) {
   }
   $data = $element['#item'];
 
+  // TODO: rethink this
+  $field = content_fields($element['#field_name'], $element['#type_name']);
   $nid = $data['safe_nid'];
   $node = node_load(array('nid' => $nid));
   $type = $node->type;
+  $thumbnail = '';
+
+  if ($thumb_field = $field['widget']['thumbnail_field_' . $type]) {
+    $filepath = $node->{$thumb_field}[0]['filepath'];
+    if ($imagecache_preset = imagecache_preset($field['widget']['thumbnail_imagecache_preset'])) {
+      $thumbnail = theme('imagecache', $imagecache_preset['presetname'], $filepath);
+    }
+  }
+
   $title = isset($data['safe_title']) ? $data['safe_title'] : '';
   $description = isset($data['safe_description']) ? $data['safe_description'] : '';
   $link = isset($data['safe_link']) ? $data['safe_link'] : '';
   $color = isset($data['safe_color']) ? $data['safe_color'] : '';
-
-  switch ($type) {
-    case MEDIAREF_IMAGE_TYPE:
-      $filepath = $node->{MEDIAREF_IMAGE_THUMBNAIL}[0]['filepath'];
-      break;
-    case MEDIAREF_VIDEO_TYPE:
-      $filepath = $node->{MEDIAREF_VIDEO_THUMBNAIL}[0]['filepath'];
-      break;
-    case MEDIAREF_SLIDESHOW_TYPE:
-      $filepath = $node->{MEDIAREF_SLIDESHOW_THUMBNAIL}[0]['filepath'];
-      break;
-  }
-
-  $thumbnail = theme('imagecache', MEDIAREF_IMAGECACHE_THUMB_PROFILE, $filepath);
 
   $output .= '<div class="mediareference-item '. $type .'">';
 

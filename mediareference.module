@@ -17,12 +17,17 @@
 //  CONFIGURATION
 //=========================================
 
+// Field is disabled
 define('MEDIAREF_FIELD_DISABLED', 0);
+
+// Field is allowed but not required
 define('MEDIAREF_FIELD_OPTIONAL', 1);
+
+// Field is required
 define('MEDIAREF_FIELD_REQUIRED', 2);
 
-// Load settings
-module_load_include('php', 'mediareference', 'mediareference.settings');
+// Default Imagecache preset
+define('MEDIAREF_IMAGECACHE_THUMB_PROFILE', 'mediareference_thumbs');
 
 //=========================================
 //    DRUPAL HOOKS
