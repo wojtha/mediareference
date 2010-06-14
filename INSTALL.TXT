@@ -1,10 +1,37 @@
 // $Id$
+_______________________________________________________________________________
 
-INSTALLATION HOW-TO
+   INSTALLATION HOW-TO
+_______________________________________________________________________________
 
-1. Check configuration settings.
-  - check imagecache profile
-  - check media types
-  - check media fields
-2. Install module.
-3. Check/update mediabrowser view
+1. Install the module.
+2. Check/update imagecache preset or create new
+3. Create some Mediareference fields
+4. Check/update mediabrowser view
+   - Note that node type filter restrictions to certain types are handled
+     dynamically.
+
+
+_______________________________________________________________________________
+
+   CHANGELOG
+_______________________________________________________________________________
+
+
+  Version 1.1 2010-06-04
+==========================
+
+  + Imagecache profile can be set for each mediareference field
+  + Thumbnail fields can be set for each mediareference field
+  + Mediareference Special Fields can be set for each mediareference field
+  + Mediabrowser node type filters is handled dynamically - all node type filters
+    are restricted to referenceable types from mediareference field CCK settings
+  # Fixed permissions - Mediabrowser should be accessed only with "create <type>
+    content" permissions, where <type> is type of content which contains the
+    mediareference field
+  - Removed mediareference.settings.php, because its not needed now.
+
+  Version 1.0 2010-06-14
+==========================
+
+  = Initial stable version
