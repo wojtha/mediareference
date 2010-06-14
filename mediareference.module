@@ -170,16 +170,26 @@ function mediareference_imagecache_default_presets() {
   );
 }
 
-/**
-* Implementation of hook_views_api().
-*
-* @return array with Views API version.
-*/
-function mediareference_views_api() {
-  return array(
-    'api' => 2.0,
-    'path' => drupal_get_path('module','mediareference') . '/views',
-  );
+/*
+ * Implementation of hook_views_default_views()
+ */
+function mediareference_views_default_views() {
+  $views = array();
+  $view = null;
+
+  $file = './'. drupal_get_path('module', 'mediareference') . '/includes/mediabrowser.view.inc';
+  ob_start();
+  include $file;
+  ob_end_clean();
+
+  if (isset($view)) {
+    $views[$view->name] = $view;
+  }
+  else {
+    watchdog('mediareference', "Can't load default mediabrowser view.", array(), WATCHDOG_ERROR);
+  }
+
+  return $views;
 }
 
 //=====================================
