@@ -411,7 +411,17 @@ function mediareference_preprocess_page(&$variables) {
       $variables['template_files'] = array();
     }
     $variables['template_files'][] = 'lightframe-page';
-    $variables['navigate_back_url'] = (!empty($_REQUEST['destination']) ? url(urldecode($_REQUEST['destination'])) : '');
+
+    // see drupal_goto()
+    $url = '';
+    if (!empty($_REQUEST['destination'])) {
+      $url = extract(parse_url(urldecode($_REQUEST['destination'])));
+      $url = url($path, array('query' => $query, 'fragment' => $fragment, 'absolute' => TRUE));
+      // Remove newlines from the URL to avoid header injection attacks.
+      $url = str_replace(array("\n", "\r"), '', $url);
+    }
+
+    $variables['navigate_back_url'] = $url;
   }
 }
 
