@@ -10,6 +10,7 @@ dependencies[] = imagefield
 dependencies[] = imagecache
 dependencies[] = colorpicker
 dependencies[] = views
+dependencies[] = views_embed_form
 dependencies[] = imagecache
 dependencies[] = lightbox2
 package = CCK

@@ -221,8 +221,18 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
     }
   }
 
+  if ($type) {
+    $element['type_info'] = array(
+      '#type' => 'item',
+      '#title' => t('Type'),
+      '#value' => $type,
+      '#weight' => -2,
+    );
+  }
   $element['preview'] = array(
-    '#value' => '<div><strong>Preview:</strong> ' . $preview .'</div>',
+    '#type' => 'item',
+    '#title' => t('Preview'),
+    '#value' => $preview,
     '#weight' => -1,
   );
 
