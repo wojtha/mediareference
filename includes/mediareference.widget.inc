@@ -61,16 +61,11 @@ function mediareference_widget(&$form, &$form_state, $field, $items, $delta = 0)
  * We use after build handler because it is load always, even when form is loaded from cache.
  */
 function mediareference_widget_after_build($form, &$form_state) {
-  static $added = FALSE;
 
-  if (!$added) {
-    dialog_add_js();
-    $path = drupal_get_path('module', 'mediareference');
-    drupal_add_css($path .'/mediareference.css');
-    drupal_add_js($path .'/mediareference.js');
-
-    $added = TRUE;
-  }
+  // attach CSS and JS files
+  $module_path = drupal_get_path('module', 'mediareference');
+  drupal_add_css($module_path .'/includes/mediareference.css');
+  drupal_add_js($module_path .'/includes/mediareference.js');
 
   return $form;
 }

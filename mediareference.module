@@ -43,8 +43,8 @@ define('MEDIAREF_IMAGECACHE_THUMB_PROFILE', 'mediareference_thumbs');
  * Implementation of hook_init()
  */
 function mediareference_init() {
-  module_load_include('inc', 'mediareference', 'mediareference.field');
-  module_load_include('inc', 'mediareference', 'mediareference.widget');
+  module_load_include('inc', 'mediareference', 'includes/mediareference.field');
+  module_load_include('inc', 'mediareference', 'includes/mediareference.widget');
   if (!empty($_REQUEST['lightframe'])) {
     mediareference_lightframe_child_js();
   }
@@ -64,6 +64,7 @@ function mediareference_menu() {
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
     'file' => 'mediareference.widget.inc',
+    'file path' => drupal_get_path('module', 'mediareference') .'/includes',
   );
   $items['mediabrowser'] = array(
     'title' => 'Mediabrowser',
@@ -124,11 +125,13 @@ function mediareference_theme() {
     'mediareference_widget' => array(
       'arguments' => array('element' => NULL),
       'file' => 'mediareference.theme.inc',
+      'path' => drupal_get_path('module', 'mediareference') .'/includes',
     ),
     // Theme for the default field formatter
     'mediareference_formatter_default' => array(
       'arguments' => array('element' => NULL),
       'file' => 'mediareference.theme.inc',
+      'path' => drupal_get_path('module', 'mediareference') .'/includes',
     ),
 
   );
@@ -302,8 +305,8 @@ function mediareference_lightframe_child_js() {
   }
 
   $module_path = drupal_get_path('module', 'mediareference');
-  drupal_add_css($module_path .'/mediareference.css');
-  drupal_add_js($module_path .'/mediareference.js');
+  drupal_add_css($module_path .'/includes/mediareference.css');
+  drupal_add_js($module_path .'/includes/mediareference.js');
 
   // Tell Drupal's theme system to use the Modal Frame template.
   $GLOBALS['lightframe_page_template'] = TRUE;
