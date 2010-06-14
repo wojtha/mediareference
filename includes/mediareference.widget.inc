@@ -52,6 +52,13 @@ function mediareference_widget(&$form, &$form_state, $field, $items, $delta = 0)
     '#after_build' => array('mediareference_widget_after_build'),
   );
 
+  // apply Mediareference specual fields settings from CCK settings form
+  foreach (array('title', 'description', 'link', 'colour') as $type) {
+    if ($field['mediareference_field_'. $type] != MEDIAREF_FIELD_DISABLED) {
+      $element[$type]['#required'] = $field['mediareference_field_'. $type] == MEDIAREF_FIELD_REQUIRED ? TRUE : FALSE;
+    }
+  }
+
   return $element;
 }
 
@@ -79,7 +86,13 @@ function mediareference_widget_settings($op, $widget) {
       $form = array();
 
       $rows = (isset($widget['rows']) && is_numeric($widget['rows'])) ? $widget['rows'] : 5;
-      $form['rows'] = array(
+
+      $form['description_field'] = array(
+        '#type' => 'fieldset',
+        '#title' => 'Settings for Description field widget',
+        '#collapsible' => TRUE,
+      );
+      $form['description_field']['rows'] = array(
         '#type' => 'textfield',
         '#title' => t('Number of rows in Description field'),
         '#default_value' => $rows,
@@ -89,7 +102,7 @@ function mediareference_widget_settings($op, $widget) {
       );
 
       $cols = (isset($widget['cols']) && is_numeric($widget['cols'])) ? $widget['cols'] : 40;
-      $form['cols'] = array(
+      $form['description_field']['cols'] = array(
         '#type' => 'textfield',
         '#title' => t('Number of columns in Description field'),
         '#default_value' => $cols,
@@ -97,12 +110,71 @@ function mediareference_widget_settings($op, $widget) {
         '#required' => TRUE,
         '#weight' => 9,
       );
+
+      $form['thumbnails'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Thumbnail preview'),
+        '#description' => 'At each content type select one field which will be used as a source for displaing thubnail preview in a mediareference widget.',
+        '#collapsible' => TRUE,
+        '#collapsed' => FALSE,
+      );
+
+      $options = array();
+      $imagecache_presets = imagecache_presets();
+      foreach ($imagecache_presets as $id => $preset) {
+      	$options[$id] = $preset['presetname'];
+      }
+
+      $form['thumbnails']['thumbnail_imagecache_preset'] = array(
+        '#type' => 'select',
+        '#title' => t('Imagecache profile'),
+        '#options' => $options,
+        '#default_value' => !empty($widget['thumbnail_imagecache_preset']) ? $widget['thumbnail_imagecache_preset'] : MEDIAREF_IMAGECACHE_THUMB_PROFILE,
+      );
+
+       $form['thumbnails']['types'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Content types'),
+        '#description' => 'At each content type select one field which will be used as a source for displaing thubnail preview in a mediareference widget.',
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
+      );
+
+      // $node_types = node_get_types('names');
+      // $info = content_fields(NULL, 'story');
+      $info = _content_type_info();
+      $content_types = $info['content types'];
+      unset($info);
+
+      foreach ($content_types as $type => $type_properties) {
+        $options = array('' => t('Disabled'));
+        foreach ($type_properties['fields'] as $name => $fields_properties) {
+          if ($fields_properties['type'] == 'filefield') {
+            $options[$name] = t('Use field @field', array('@field' => $fields_properties['widget']['label']));
+          }
+        }
+
+        $form['thumbnails']['types']['thumbnail_field_'. $type] = array(
+          '#type' => 'radios',
+          '#title' => t('Thumbnail support for type %type', array('%type' => $type_properties['name'])),
+          '#options' => $options,
+          '#default_value' => !empty($widget['thumbnail_field_'. $type]) ? $widget['thumbnail_field_'. $type] : '',
+        );
+      }
+
       return array_merge($form, nodereference_widget_settings('form', $widget));
 
     case 'save':
       $settings = array();
       $settings[] = 'rows';
       $settings[] = 'cols';
+
+      $settings[] = 'thumbnail_imagecache_preset';
+      $node_types = node_get_types('names');
+      foreach ($node_types as $type => $name) {
+      	$settings[] = 'thumbnail_field_'. $type;
+      }
+
       return array_merge($settings, nodereference_widget_settings('save', $widget));
   }
 }
@@ -114,13 +186,14 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
 
   $defaults = $element['#default_value'];
   $field = content_fields($element['#field_name'], $element['#type_name']);
-
+  $thumb_field = NULL;
+  $imagecache_preset = NULL;
   $preview = '';
 
   if (empty($defaults['nid'])) {
-    $preview = 'none <em>(use Browse button to attach some media)</em>';
     $element['#prefix'] = '<div class="mediareference empty">';
     $element['#suffix'] = '</div>';
+    $element['info'] = array('#value' => t('None <em>(use Browse button to attach some media)</em>'));
   }
   else {
 
@@ -131,27 +204,19 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
     }
 
     $type = $defaults['type'];
-    $definition = '';
-    $thumb_field = '';
-    switch ($type) {
-      case MEDIAREF_IMAGE_TYPE:
-        $definition = MEDIAREF_IMAGE_FIELDS;
-        $thumb_field = MEDIAREF_IMAGE_THUMBNAIL;
-        break;
-      case MEDIAREF_VIDEO_TYPE:
-        $definition = MEDIAREF_VIDEO_FIELDS;
-        $thumb_field = MEDIAREF_VIDEO_THUMBNAIL;
-        break;
-      case MEDIAREF_SLIDESHOW_TYPE:
-        $definition = MEDIAREF_SLIDESHOW_FIELDS;
-        $thumb_field = MEDIAREF_SLIDESHOW_THUMBNAIL;
-        break;
+
+    if ($type && empty($defaults['thumbnail'])) {
+      if ($thumb_field = $field['widget']['thumbnail_field_' . $type]) {
+        $defaults['thumbnail'] = $node->{$thumb_field}[0]['filepath'];
+      }
     }
 
-    if (empty($defaults['thumbnail'])) {
-      $defaults['thumbnail'] = $node->{$thumb_field}[0]['filepath'];
+    if (!empty($defaults['thumbnail'])) {
+      if ($imagecache_preset = imagecache_preset($field['widget']['thumbnail_imagecache_preset'])) {
+        $imagecache_preset = $field['widget']['thumbnail_imagecache_preset'];
+        $preview = theme('imagecache', MEDIAREF_IMAGECACHE_THUMB_PROFILE, $defaults['thumbnail']);
+      }
     }
-    $preview = theme('imagecache', MEDIAREF_IMAGECACHE_THUMB_PROFILE, $defaults['thumbnail']);
 
     $element['#prefix'] = '<div class="mediareference '. $type .'">';
     $element['#suffix'] = '</div>';
@@ -171,8 +236,8 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
       '#value' => $defaults['nid'],
     );
 
-    if (strpos($definition, 'title') !== FALSE) {
-      $element['title'] = array(
+    if (isset($element['title'])) {
+      $element['title'] += array(
         '#title' => t('Title'),
         '#type' => 'textfield',
         '#default_value' => $defaults['title'],
@@ -180,8 +245,8 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
       );
     }
 
-    if (strpos($definition, 'link') !== FALSE) {
-      $element['link'] = array(
+    if (isset($element['link'])) {
+      $element['link'] += array(
         '#title' => t('Link'),
         '#type' => 'textfield',
         '#default_value' => $defaults['link'],
@@ -189,8 +254,8 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
       );
     }
 
-    if (strpos($definition, 'colour') !== FALSE) {
-      $element['colour'] = array(
+    if (isset($element['colour'])) {
+      $element['colour'] += array(
         '#title' => t('Color'),
         '#type' => 'colorpicker_textfield',
         '#default_value' => $defaults['colour'],
@@ -198,8 +263,8 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
       );
     }
 
-    if (strpos($definition, 'description') !== FALSE) {
-      $element['description'] = array(
+    if (isset($element['description'])) {
+      $element['description'] += array(
         '#title' => t('Description'),
         '#type' => 'textarea',
         '#rows' => $field['widget']['rows'],
@@ -214,22 +279,26 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
         $element['format'] = filter_form($filter, 5, $parents);
       }
     }
+
+    if ($preview) {
+      $element['preview'] = array(
+        '#type' => 'item',
+        '#title' => t('Preview'),
+        '#value' => $preview,
+        '#weight' => -1,
+      );
+    }
+
+    if ($type) {
+      $element['type_info'] = array(
+        '#type' => 'item',
+        '#title' => t('Type'),
+        '#value' => $type,
+        '#weight' => -2,
+      );
+    }
   }
 
-  if ($type) {
-    $element['type_info'] = array(
-      '#type' => 'item',
-      '#title' => t('Type'),
-      '#value' => $type,
-      '#weight' => -2,
-    );
-  }
-  $element['preview'] = array(
-    '#type' => 'item',
-    '#title' => t('Preview'),
-    '#value' => $preview,
-    '#weight' => -1,
-  );
 
   $element['actions'] = array(
     '#weight' => 6,
@@ -279,7 +348,16 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
  */
 function mediareference_widget_js($type_name, $field_name, $delta_action, $action) {
 
+  // load the field definition and check if arguments from url is right
   $field = content_fields($field_name, $type_name);
+  if (empty($field)) {
+    drupal_not_found();
+  }
+
+  // check access
+  if (!user_access("create $type_name content")) {
+    drupal_access_denied();
+  }
 
   // Add the new elements to the stored form. Without adding the element
   // to the form, Drupal is not aware of this new elements existence and

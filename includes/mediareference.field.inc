@@ -39,7 +39,7 @@ function mediareference_field_settings($op, $field) {
     case 'form':
       $form = array();
       $form += nodereference_field_settings('form', $field);
-      $form += array('description_text_processing' => array(
+      $form['description_text_processing'] = array(
         '#type' => 'radios',
         '#title' => t('Text processing for Description'),
         '#default_value' => is_numeric($field['description_text_processing']) ? $field['description_text_processing'] : 0,
@@ -47,12 +47,38 @@ function mediareference_field_settings($op, $field) {
             0 => t('Plain text'),
             1 => t('Filtered text (user selects input format)')
           ),
-      ));
+      );
+      $form['mediareference_fields'] = array(
+        '#title' => t('Mediareference Fields'),
+        '#description' => t('Specify which fields will be enabled.'),
+        '#type' => 'fieldset',
+        '#collapsible' => TRUE,
+        '#collapsed' => FALSE,
+        '#tree' => FALSE,
+      );
+
+      foreach (array('title', 'description', 'link', 'colour') as $type) {
+        $form['mediareference_fields']['mediareference_field_'. $type] = array(
+          '#type' => 'radios',
+          '#title' => t('Field %type', array('%type' => drupal_ucfirst($type))),
+          '#default_value' => !empty($field['mediareference_field_'. $type]) ? $field['mediareference_field_'. $type] : 0,
+          '#options' => array(
+            MEDIAREF_FIELD_DISABLED => t('Disabled'),
+            MEDIAREF_FIELD_OPTIONAL => t('Optional'),
+            MEDIAREF_FIELD_REQUIRED => t('Required'),
+          ),
+        );
+      }
+
       return $form;
 
     case 'save':
       $settings = nodereference_field_settings('save', $field);
+      foreach (array('title', 'description', 'link', 'colour') as $type) {
+        $settings[] = 'mediareference_field_'. $type;
+      }
       $settings[] = 'description_text_processing';
+
       return $settings;
 
      case 'views data':

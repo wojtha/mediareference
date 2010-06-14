@@ -14,9 +14,14 @@
  */
 
 //=========================================
-//  LOAD CONFIGURATION
+//  CONFIGURATION
 //=========================================
 
+define('MEDIAREF_FIELD_DISABLED', 0);
+define('MEDIAREF_FIELD_OPTIONAL', 1);
+define('MEDIAREF_FIELD_REQUIRED', 2);
+
+// Load settings
 module_load_include('php', 'mediareference', 'mediareference.settings');
 
 //=========================================
@@ -50,8 +55,9 @@ function mediareference_menu() {
     'file' => 'mediareference.widget.inc',
     'file path' => drupal_get_path('module', 'mediareference') .'/includes',
   );
-  $items['mediabrowser'] = array(
+  $items['mediabrowser/%/%'] = array(
     'title' => 'Mediabrowser',
+    'page arguments' => array(1, 2),
     'page callback' => 'mediareference_browser',
     'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
@@ -73,6 +79,11 @@ function mediareference_form_alter(&$form, $form_state, $form_id) {
       $form['#after_build'] = array();
     }
     $form['#after_build'][] = 'mediareference_lightframe_form_after_build';
+  }
+
+  // Modify CCK field/settings page
+  if ($form_id === 'content_field_edit_form') {
+    unset($form['field']['advanced']);
   }
 
   /*if ($form_id == 'views_exposed_form') {
@@ -184,14 +195,73 @@ function mediareference_views_default_views() {
 //   MENU CALLBACKS
 //=====================================
 
-function mediareference_browser() {
+function mediareference_browser($type_name, $field_name) {
   $output = '';
 
-  mediareference_lightframe_child_js();
+  // load the field definition and check if arguments from url is right
+  $field = content_fields($field_name, $type_name);
+  if (empty($type_name) || empty($field_name) || empty($field)) {
+    return drupal_not_found();
+  }
 
+  // check access
+  if (!user_access("create $type_name content")) {
+    return drupal_access_denied();
+  }
+
+  mediareference_lightframe_child_js();
+  $referenceable_types = array_filter($field['referenceable_types']);
+  $destination = drupal_get_destination();
+
+  $display_id = 'default';
   $view = views_get_view('mediabrowser');
   $view->override_path = $_GET['q'];
-  $view->set_display('default');
+  $view->is_cacheable = FALSE;
+
+  $add_content = '';
+  $glue = '';
+  foreach ($referenceable_types as $type) {
+    if (user_access("create $type content")) {
+      $add_content .= $glue . l(t('add @type', array('@type' => $type)), 'node/add/'. $type, array('query' => $destination));
+      $glue = ', ';
+    }
+  }
+
+  if ($add_content && isset($view->display[$display_id]->display_options['header'])) {
+    $view->display[$display_id]->display_options['header'] = '<strong>'. t('Add new content') . ':</strong> ' . $add_content .'</div>';
+  }
+
+  // modify all node type filters, allow only node types set in nodereference CCK settings
+  $node_type_filters_count = 0;
+  if (isset($view->display[$display_id]->display_options['filters'])) {
+    foreach ($view->display[$display_id]->display_options['filters'] as $filter_type => &$filter) {
+      if (preg_match('/^type(_\d+)?$/', $filter_type) && $filter['table'] == 'node') {
+        $filter['value'] = $referenceable_types;
+        $node_type_filters_count++;
+      }
+    }
+  }
+
+  // add node type filter if doesn't exists
+  if ($node_type_filters_count == 0) {
+    $options = array(
+      'operator' => 'in',
+      'value' => $referenceable_types,
+      'group' => '0',
+      'exposed' => FALSE,
+      'expose' => array(
+        'operator' => FALSE,
+        'label' => '',
+      ),
+      'relationship' => 'none',
+    );
+    $view->add_item($display_id, 'filter', 'node', 'type', $options);
+  }
+
+  //vsm($view);
+
+  // Prepare display for render
+  $view->set_display($display_id);
 
   // Get the results.
   $output .= $view->preview();

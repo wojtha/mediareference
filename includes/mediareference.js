@@ -127,12 +127,18 @@ Drupal.behaviors.mediareference = function(context) {
       // Other handlers in queue (including AHAH, can be launched only when setting this.mouseDownStopPropagation to 0 before
       if (this.mouseDownStopPropagation) {
         e.stopImmediatePropagation();
-        var href = '/mediabrowser';
-        var alt = title = 'Media Browser';
-        var style = 'width:900px; height:500px; scrolling:yes; disableCloseClick:false';
-        LightframeStart(href, title, alt, style);
-        // save this to global variable for later use
-        Drupal.settings.lightframe.updateAfterClose = this;
+        // parse type and field arguments from AHAH settings
+        // TODO: think about some better solution how to get these values - this is little bit dirty
+        var ahahSettings = Drupal.settings.ahah[$(this).attr('id')];
+        if (ahahSettings) {
+          var params = ahahSettings.url.split('/');
+          var href = '/mediabrowser/' + params[2] + '/' + params[3];
+          var alt = title = 'Media Browser';
+          var style = 'width:900px; height:500px; scrolling:yes; disableCloseClick:false';
+          LightframeStart(href, title, alt, style);
+          // save this to global variable for later use
+          Drupal.settings.lightframe.updateAfterClose = this;
+        }
       }
       // Prevent default action of the link click event.
       return false;
@@ -148,11 +154,13 @@ Drupal.behaviors.mediareference = function(context) {
   if (Drupal.settings.mediareference.lightframize) {
     $('a:not(.lightframized)', context).each( function() {
       var link = $(this).attr('href');
-      if (link.search(/\?/) == -1) {
-        $(this).attr('href', link + '?lightframe=1');
-      }
-      else {
-        $(this).attr('href', link + '&lightframe=1');
+      if (link.search(/lightframe=/) == -1) {
+        if (link.search(/\?/) == -1) {
+          $(this).attr('href', link + '?lightframe=1');
+        }
+        else {
+          $(this).attr('href', link + '&lightframe=1');
+        }
       }
     })
     .addClass('lightframized');
