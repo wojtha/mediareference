@@ -1,0 +1,10 @@
+// $Id$
+
+INSTALLATION HOW-TO
+
+1. Check configuration settings.
+  - check imagecache profile
+  - check media types
+  - check media fields
+2. Install module.
+3. Check/update mediabrowser view
