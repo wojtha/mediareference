@@ -155,6 +155,7 @@ function mediareference_imagecache_default_presets() {
       )
     )
   );
+  return $presets;
 }
 
 /*
