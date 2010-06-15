@@ -17,8 +17,15 @@ _______________________________________________________________________________
    CHANGELOG
 _______________________________________________________________________________
 
+  Version 1.2 2010-06-16
+==========================
 
-  Version 1.1 2010-06-04
+  # Fixed 404 when item delta is 0
+  # Fixed mixin' of field values with attributes
+  # Fixed reloading of old field content from updated node object when item
+    count is decreased to 0
+
+  Version 1.1 2010-06-14
 ==========================
 
   + Imagecache profile can be set for each mediareference field

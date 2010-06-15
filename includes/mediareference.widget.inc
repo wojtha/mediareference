@@ -349,7 +349,8 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
 
   // load the field definition and check if arguments from url is right
   $field = content_fields($field_name, $type_name);
-  if (empty($type_name) || empty($field_name) || empty($delta_action) || empty($action) || empty($field)) {
+  $delta_action = intval($delta_action);
+  if (empty($type_name) || empty($field_name) || empty($action) || empty($field)) {
     return drupal_not_found();
   }
 
@@ -364,7 +365,11 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
   // and resave.
   $form_build_id = $_POST['form_build_id'];
   $form_state = array('submitted' => FALSE);
-  $form = form_get_cache($form_build_id, $form_state);
+  if (!($form = form_get_cache($form_build_id, $form_state))) {
+    // Invalid form_build_id.
+    drupal_json(array('data' => ''));
+    exit;
+  }
 
   // The form that we get from the cache is unbuilt. We need to build it so that
   // _value callbacks can be executed and $form_state['values'] populated.
@@ -383,7 +388,7 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
 
   // Sort the $form_state['values'] we just built *and* the incoming $_POST data
   // according to d-n-d reordering.
-  $form_state['values'][$field_name] = mediareference_filter_children($form[$field_name]);
+  unset($form_state['values'][$field_name][$field['field_name'] .'_add_more']);
   foreach ($_POST[$field_name] as $delta => $item) {
     $form_state['values'][$field_name][$delta]['_weight'] = $item['_weight'];
   }
@@ -417,7 +422,16 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
       module_load_include('inc', 'content', 'includes/content.node_form');
       // Build our new form element for the whole field, asking for one more element.
       $form_state['item_count'] = array($field_name => 0);
-      $form_element = content_field_form($form, $form_state, $field);
+      // Create temporary form copy, because when we updating the node and there
+      // is no items, content_field_form() will try to assign values from original node,
+      // but we want empty form element.
+      $form_copy = $form;
+      if (isset($form_copy['#node']) && !empty($form_copy['#node']->{$field_name})) {
+        unset($form_copy['#node']->{$field_name});
+      }
+      $form_element = content_field_form($form_copy, $form_state, $field);
+      // we dont need $form_copy anymore
+      unset($form_copy);
       $form[$field_name][0] = $form_element[$field_name][0];
     }
   }

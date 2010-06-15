@@ -332,7 +332,7 @@ function mediareference_filter_children(&$element, $attributes = FALSE) {
 
   if (is_array($element) && count($element)) {
     foreach ($element as $key => $value) {
-      if (is_numeric($key) || ($attributes && $key[0] == '#')) {
+      if (is_numeric($key) || (strpos($key, '#') == 0 && $attributes)) {
         $children[$key] = $value;
       }
     }
