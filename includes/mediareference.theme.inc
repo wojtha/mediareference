@@ -12,7 +12,7 @@
 /**
  * Theme function for mediareference widget
  */
-function theme_mediareference_widget(&$element) {
+function theme_mediareference_widget($element) {
   return theme('form_element', $element, $element['#children']);
 }
 
