@@ -103,10 +103,14 @@ function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
 
     case 'sanitize':
       foreach ($items as $delta => $item) {
-        unset($item['actions']);
-        foreach ($item as $col => $data) {
+        $item_keys = array_keys($item);
+        $allowed_keys = array('nid', 'fid', 'filepath', 'title', 'link', 'description', 'colour');
+        // FIX: from PHP >= 5.1.0 we can do array_intersect_key() directly
+        $item_keys = (array_intersect($item_keys, $allowed_keys));
+        foreach ($item_keys as $key) {
+          $data = $item[$key];
           // process description field
-          if ($col === 'description' && !empty($field['description_text_processing'])) {
+          if ($key === 'description' && !empty($field['description_text_processing'])) {
             $check_access = is_null($node) || (isset($node->build_mode) && $node->build_mode == NODE_BUILD_PREVIEW);
             $data = check_markup($data, $item['format'], $check_access);
           }
@@ -114,7 +118,7 @@ function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
             $data = check_plain($data);
           }
 
-          $items[$delta]['safe_' . $col] = $data;
+          $items[$delta]['safe_' . $key] = $data;
         }
       }
     break;
