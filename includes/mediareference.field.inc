@@ -30,8 +30,9 @@ function mediareference_field_settings($op, $field) {
     case 'database columns':
       $columns = array();
       $columns += nodereference_field_settings('database columns', $field);
+      $columns['fid'] = array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'index' => TRUE);
       $columns['title'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => TRUE, 'default' => '');
-      $columns['description'] = array('type' => 'text', 'not null' => FALSE, 'sortable' => TRUE);
+      $columns['description'] = array('type' => 'text', 'not null' => FALSE, 'sortable' => FALSE);
       $columns['link'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '');
       $columns['colour'] = array('type' => 'varchar', 'length' => 7, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '');
       return $columns;
@@ -90,8 +91,16 @@ function mediareference_field_settings($op, $field) {
  * Implementation of CCK hook_field()
  */
 function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
-
   switch ($op) {
+    case 'load':
+      module_load_include('inc', 'filefield', 'field_file');
+      foreach ($items as $delta => &$item) {
+        if ($file = field_file_load($item['fid'])) {
+          $item['filepath'] = $file['filepath'];
+        }
+      }
+      break;
+
     case 'sanitize':
       foreach ($items as $delta => $item) {
         unset($item['actions']);

@@ -19,7 +19,11 @@ function mediareference_elements() {
       '#input' => TRUE,
       '#delta' => 0,
       '#process' => array('mediareference_widget_process'),
+      '#value_callback' => 'mediareference_widget_value',
       '#autocomplete_path' => FALSE,
+      '#attributes' => array(
+        'class' => 'mediareference-element',
+      ),
     )
   );
 
@@ -75,6 +79,35 @@ function mediareference_widget_after_build($form, &$form_state) {
   drupal_add_js($module_path .'/includes/mediareference.js');
 
   return $form;
+}
+
+/**
+ * The #value_callback for the mediareference_widget type element.
+ */
+function mediareference_widget_value($element, $edit = FALSE) {
+  if (!$edit) {
+    $file = field_file_load($element['#default_value']['fid']);
+    $item = $element['#default_value'];
+    $item['filepath'] = $file['filepath'];
+  }
+  else {
+    $item = array_merge($element['#default_value'], $edit);
+    //$field = content_fields($element['#field_name'], $element['#type_name']);
+
+    // Load file if the FID has changed so that it can be saved by CCK.
+    $file = field_file_load($item['fid']);
+    $item['filepath'] = $file['filepath'];
+
+    // If the file entry doesn't exist, don't save anything.
+    if (empty($file)) {
+      $item = array();
+    }
+  }
+
+  // Merge file and item data so it is available to all widgets.
+  // $item = array_merge($item, $file);
+
+  return $item;
 }
 
 /**
@@ -190,6 +223,12 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
   $imagecache_preset = NULL;
   $preview = '';
 
+  if ($field['widget']['insert']) {
+    $element['#after_build'][] = 'insert_process';
+    $element['#after_build'][] = 'mediareference_widget_insert_after_build';
+  }
+  //dpm($field);
+
   if (empty($defaults['nid'])) {
     $element['#prefix'] = '<div class="mediareference empty">';
     $element['#suffix'] = '</div>';
@@ -197,7 +236,7 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
   }
   else {
 
-    if (empty($defaults['thumbnail']) || empty($defaults['title']) || empty($defaults['type'])) {
+    if (empty($defaults['filepath']) || empty($defaults['fid']) || empty($defaults['title']) || empty($defaults['type'])) {
       $node = node_load(array('nid' => $defaults['nid']));
       $defaults['type'] = !empty($defaults['type']) ? $defaults['type'] : $node->type;
       $defaults['title'] = !empty($defaults['title']) ? $defaults['title'] : $node->title;
@@ -205,15 +244,16 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
 
     $type = $defaults['type'];
 
-    if ($type && empty($defaults['thumbnail'])) {
+    if ($type && (empty($defaults['filepath']) || empty($defaults['fid']))) {
       if ($thumb_field = $field['widget']['thumbnail_field_' . $type]) {
-        $defaults['thumbnail'] = $node->{$thumb_field}[0]['filepath'];
+        $defaults['filepath'] = $node->{$thumb_field}[0]['filepath'];
+        $defaults['fid'] = $node->{$thumb_field}[0]['fid'];
       }
     }
 
-    if (!empty($defaults['thumbnail'])) {
+    if (!empty($defaults['filepath'])) {
       if ($imagecache_preset = imagecache_preset($field['widget']['thumbnail_imagecache_preset'])) {
-        $preview = theme('imagecache', $imagecache_preset['presetname'], $defaults['thumbnail']);
+        $preview = theme('imagecache', $imagecache_preset['presetname'], $defaults['filepath']);
       }
     }
 
@@ -225,14 +265,19 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
       '#value' => $defaults['type'],
     );
 
-    $element['thumbnail'] = array(
-      '#type' => 'hidden',
-      '#value' => $defaults['thumbnail'],
-    );
-
     $element['nid'] = array(
       '#type' => 'hidden',
       '#value' => $defaults['nid'],
+    );
+
+    $element['fid'] = array(
+      '#type' => 'hidden',
+      '#value' => $defaults['fid'],
+    );
+
+    $element['filepath'] = array(
+      '#type' => 'hidden',
+      '#value' => $defaults['filepath'],
     );
 
     if (isset($element['title'])) {
@@ -298,7 +343,6 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
     }
   }
 
-
   $element['actions'] = array(
     '#weight' => 6,
   );
@@ -328,8 +372,19 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
     '#attributes' => array('class' => 'mrf-browse-button'),
   );
 
-  // dpm($element);
+  return $element;
+}
 
+/**
+ * Process function for insert-enabled fields.
+ */
+function mediareference_widget_insert_after_build($element) {
+  if (isset($element['insert'])) {
+    $insert = $element['insert'];
+    $insert['#weight'] = 10;
+    $element['actions']['insert'] = $insert;
+    unset($element['insert']);
+  }
   return $element;
 }
 

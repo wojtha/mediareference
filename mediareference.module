@@ -39,6 +39,12 @@ define('MEDIAREF_IMAGECACHE_THUMB_PROFILE', 'mediareference_thumbs');
 function mediareference_init() {
   module_load_include('inc', 'mediareference', 'includes/mediareference.field');
   module_load_include('inc', 'mediareference', 'includes/mediareference.widget');
+
+  // Insert support
+  if (module_exists('insert')) {
+    module_load_include('inc', 'mediareference', 'includes/mediareference.insert');
+  }
+
   if (!empty($_REQUEST['lightframe'])) {
     mediareference_lightframe_child_js();
   }
