@@ -55,14 +55,14 @@ function mediareference_field_settings($op, $field) {
         '#type' => 'fieldset',
         '#collapsible' => TRUE,
         '#collapsed' => FALSE,
-        '#tree' => FALSE,
+        '#tree' => TRUE,
       );
 
       foreach (array('title', 'description', 'link', 'colour') as $type) {
-        $form['mediareference_fields']['mediareference_field_'. $type] = array(
+        $form['mediareference_fields'][$type] = array(
           '#type' => 'radios',
           '#title' => t('Field %type', array('%type' => drupal_ucfirst($type))),
-          '#default_value' => !empty($field['mediareference_field_'. $type]) ? $field['mediareference_field_'. $type] : 0,
+          '#default_value' => !empty($field['mediareference_fields'][$type]) ? $field['mediareference_fields'][$type] : 0,
           '#options' => array(
             MEDIAREF_FIELD_DISABLED => t('Disabled'),
             MEDIAREF_FIELD_OPTIONAL => t('Optional'),
@@ -75,9 +75,7 @@ function mediareference_field_settings($op, $field) {
 
     case 'save':
       $settings = nodereference_field_settings('save', $field);
-      foreach (array('title', 'description', 'link', 'colour') as $type) {
-        $settings[] = 'mediareference_field_'. $type;
-      }
+      $settings[] = 'mediareference_fields';
       $settings[] = 'description_text_processing';
 
       return $settings;
@@ -104,7 +102,7 @@ function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
     case 'sanitize':
       foreach ($items as $delta => $item) {
         $item_keys = array_keys($item);
-        $allowed_keys = array('nid', 'fid', 'filepath', 'title', 'link', 'description', 'colour');
+        $allowed_keys = array_merge(array('nid', 'fid', 'filepath'), array_filter($field['mediareference_fields']));
         // FIX: from PHP >= 5.1.0 we can do array_intersect_key() directly
         $item_keys = (array_intersect($item_keys, $allowed_keys));
         foreach ($item_keys as $key) {

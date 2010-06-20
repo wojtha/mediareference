@@ -341,7 +341,7 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
   }
 
   $element['actions'] = array(
-    '#weight' => 6,
+    '#weight' => 20,
   );
 
   $field_name_css = str_replace('_', '-', $element['#field_name']);
@@ -355,6 +355,7 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
       'method' => 'replace',
       'effect' => 'fade',
     ),
+    '#weight' => 8,
   );
 
   $element['actions']['browse'] = array(
@@ -367,6 +368,7 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
       'effect' => 'fade',
     ),
     '#attributes' => array('class' => 'mrf-browse-button'),
+    '#weight' => 4,
   );
 
   return $element;
@@ -378,7 +380,8 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
 function mediareference_widget_insert_after_build($element) {
   if (isset($element['insert'])) {
     $insert = $element['insert'];
-    $insert['#weight'] = 10;
+    // place it before Browse and Remove buttons
+    $insert['#weight'] = 0;
     $element['actions']['insert'] = $insert;
     unset($element['insert']);
   }
