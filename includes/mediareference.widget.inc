@@ -21,9 +21,6 @@ function mediareference_elements() {
       '#process' => array('mediareference_widget_process'),
       '#value_callback' => 'mediareference_widget_value',
       '#autocomplete_path' => FALSE,
-      '#attributes' => array(
-        'class' => 'mediareference-element',
-      ),
     )
   );
 
@@ -91,7 +88,7 @@ function mediareference_widget_value($element, $edit = FALSE) {
     $item['filepath'] = $file['filepath'];
   }
   else {
-    $item = array_merge($element['#default_value'], $edit);
+    $item = array_merge((array) $element['#default_value'], $edit);
     //$field = content_fields($element['#field_name'], $element['#type_name']);
 
     // Load file if the FID has changed so that it can be saved by CCK.
