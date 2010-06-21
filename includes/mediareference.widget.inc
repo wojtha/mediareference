@@ -53,10 +53,10 @@ function mediareference_widget(&$form, &$form_state, $field, $items, $delta = 0)
     '#after_build' => array('mediareference_widget_after_build'),
   );
 
-  // apply Mediareference specual fields settings from CCK settings form
-  foreach (array('title', 'description', 'link', 'colour') as $type) {
-    if ($field['mediareference_field_'. $type] != MEDIAREF_FIELD_DISABLED) {
-      $element[$type]['#required'] = $field['mediareference_field_'. $type] == MEDIAREF_FIELD_REQUIRED ? TRUE : FALSE;
+  // apply Mediareference special fields settings from CCK settings form
+  foreach ($field['mediareference_fields'] as $type => $mode) {
+    if ($mode != MEDIAREF_FIELD_DISABLED) {
+      $element[$type]['#required'] = ($mode == MEDIAREF_FIELD_REQUIRED ? TRUE : FALSE);
     }
   }
 
@@ -162,12 +162,13 @@ function mediareference_widget_settings($op, $widget) {
         '#default_value' => !empty($widget['thumbnail_imagecache_preset']) ? $widget['thumbnail_imagecache_preset'] : MEDIAREF_IMAGECACHE_THUMB_PROFILE,
       );
 
-       $form['thumbnails']['types'] = array(
+      $form['thumbnails']['thumbnail_type_fields'] = array(
         '#type' => 'fieldset',
         '#title' => t('Content types'),
         '#description' => 'At each content type select one field which will be used as a source for displaing thubnail preview in a mediareference widget.',
         '#collapsible' => TRUE,
         '#collapsed' => TRUE,
+        '#tree' => TRUE,
       );
 
       // $node_types = node_get_types('names');
@@ -184,11 +185,11 @@ function mediareference_widget_settings($op, $widget) {
           }
         }
 
-        $form['thumbnails']['types']['thumbnail_field_'. $type] = array(
+        $form['thumbnails']['thumbnail_type_fields'][$type] = array(
           '#type' => 'radios',
           '#title' => t('Thumbnail support for type %type', array('%type' => $type_properties['name'])),
           '#options' => $options,
-          '#default_value' => !empty($widget['thumbnail_field_'. $type]) ? $widget['thumbnail_field_'. $type] : '',
+          '#default_value' => !empty($widget['thumbnail_type_fields'][$type]) ? $widget['thumbnail_type_fields'][$type] : '',
         );
       }
 
@@ -200,10 +201,7 @@ function mediareference_widget_settings($op, $widget) {
       $settings[] = 'cols';
 
       $settings[] = 'thumbnail_imagecache_preset';
-      $node_types = node_get_types('names');
-      foreach ($node_types as $type => $name) {
-      	$settings[] = 'thumbnail_field_'. $type;
-      }
+      $settings[] = 'thumbnail_type_fields';
 
       return array_merge($settings, nodereference_widget_settings('save', $widget));
   }
@@ -213,6 +211,7 @@ function mediareference_widget_settings($op, $widget) {
  * Process of our FAPI elements/widget
  */
 function mediareference_widget_process($element, $edit, &$form_state, $form) {
+  dpm('process');
 
   $defaults = $element['#default_value'];
   $field = content_fields($element['#field_name'], $element['#type_name']);
