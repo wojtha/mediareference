@@ -19,7 +19,7 @@ function mediareference_elements() {
       '#input' => TRUE,
       '#delta' => 0,
       '#process' => array('mediareference_widget_process'),
-      '#value_callback' => 'mediareference_widget_value',
+      //'#value_callback' => 'mediareference_widget_value',
       '#autocomplete_path' => FALSE,
     )
   );
@@ -51,6 +51,7 @@ function mediareference_widget(&$form, &$form_state, $field, $items, $delta = 0)
     '#type' => $field['widget']['type'],
     '#default_value' => isset($items[$delta]) ? $items[$delta] : NULL,
     '#after_build' => array('mediareference_widget_after_build'),
+    //'#value_callback' => 'mediareference_widget_value',
   );
 
   // apply Mediareference special fields settings from CCK settings form
@@ -211,7 +212,6 @@ function mediareference_widget_settings($op, $widget) {
  * Process of our FAPI elements/widget
  */
 function mediareference_widget_process($element, $edit, &$form_state, $form) {
-  dpm('process');
 
   $defaults = $element['#default_value'];
   $field = content_fields($element['#field_name'], $element['#type_name']);
@@ -223,7 +223,6 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
     $element['#after_build'][] = 'insert_process';
     $element['#after_build'][] = 'mediareference_widget_insert_after_build';
   }
-  //dpm($field);
 
   if (empty($defaults['nid'])) {
     $element['#prefix'] = '<div class="mediareference empty">';

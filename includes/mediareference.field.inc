@@ -30,11 +30,11 @@ function mediareference_field_settings($op, $field) {
     case 'database columns':
       $columns = array();
       $columns += nodereference_field_settings('database columns', $field);
-      $columns['fid'] = array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'index' => TRUE);
-      $columns['title'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => TRUE, 'default' => '');
-      $columns['description'] = array('type' => 'text', 'not null' => FALSE, 'sortable' => FALSE);
-      $columns['link'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '');
-      $columns['colour'] = array('type' => 'varchar', 'length' => 7, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '');
+      $columns['fid'] = array('type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'index' => TRUE, 'views' => TRUE);
+      $columns['title'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => TRUE, 'default' => '', 'views' => TRUE);
+      $columns['description'] = array('type' => 'text', 'not null' => FALSE, 'sortable' => FALSE, 'views' => TRUE);
+      $columns['link'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '', 'views' => TRUE);
+      $columns['colour'] = array('type' => 'varchar', 'length' => 7, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '', 'views' => TRUE);
       return $columns;
 
     case 'form':
@@ -81,6 +81,7 @@ function mediareference_field_settings($op, $field) {
       return $settings;
 
      case 'views data':
+       // TODO: look at filefield for inspiration
       return nodereference_field_settings('views data', $field);
   }
 }
@@ -89,6 +90,7 @@ function mediareference_field_settings($op, $field) {
  * Implementation of CCK hook_field()
  */
 function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
+  //dpm('mediareference_field() $op=' . $op);
   switch ($op) {
     case 'load':
       module_load_include('inc', 'filefield', 'field_file');
@@ -102,9 +104,9 @@ function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
     case 'sanitize':
       foreach ($items as $delta => $item) {
         $item_keys = array_keys($item);
-        $allowed_keys = array_merge(array('nid', 'fid', 'filepath'), array_filter($field['mediareference_fields']));
+        $sanitized_keys = array_merge(array('nid', 'fid', 'filepath'), array_keys(array_filter($field['mediareference_fields'])));
         // FIX: from PHP >= 5.1.0 we can do array_intersect_key() directly
-        $item_keys = (array_intersect($item_keys, $allowed_keys));
+        $item_keys = (array_intersect($item_keys, $sanitized_keys));
         foreach ($item_keys as $key) {
           $data = $item[$key];
           // process description field
@@ -124,8 +126,8 @@ function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
     case 'validate':
       if (is_array($items)) {
         foreach ($items as $delta => $item) {
-          if ($item['link'] != '' && !valid_url(trim($item['link']))) {
-            form_set_error($field['field_name'],t('Link "%url" is not a valid link.', array('%url' => $item['link'])));
+          if (!empty($item['link']) && !valid_url(trim($item['link']))) {
+            form_set_error($field['field_name'], t('Link "%url" is not a valid link.', array('%url' => $item['link'])));
           }
         }
      }

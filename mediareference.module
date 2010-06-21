@@ -112,7 +112,6 @@ function mediareference_form_alter(&$form, $form_state, $form_id) {
       $form['filters'][$key] = $element;
       unset($form[$key]);
     }
-    dpm($form);
   }*/
 
 }

@@ -25,7 +25,9 @@ function theme_mediareference_formatter_default($element = NULL) {
   if (empty($element['#item'])) {
     return $output;
   }
+
   $data = $element['#item'];
+  //dpm($data, 'formatter_default');
 
   // TODO: rethink this
   $field = content_fields($element['#field_name'], $element['#type_name']);
