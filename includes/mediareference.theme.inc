@@ -36,7 +36,7 @@ function theme_mediareference_formatter_default($element = NULL) {
   $type = $node->type;
   $thumbnail = '';
 
-  if ($thumb_field = $field['widget']['thumbnail_field_' . $type]) {
+  if ($thumb_field = $field['widget']['thumbnail_type_fields'][$type]) {
     $filepath = $node->{$thumb_field}[0]['filepath'];
     if ($imagecache_preset = imagecache_preset($field['widget']['thumbnail_imagecache_preset'])) {
       $thumbnail = theme('imagecache', $imagecache_preset['presetname'], $filepath);

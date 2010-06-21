@@ -81,6 +81,9 @@ function mediareference_widget_after_build($form, &$form_state) {
 
 /**
  * The #value_callback for the mediareference_widget type element.
+ *
+ * NOT USED CURRENTLY
+ * check mediareference_elements or mediareference_widget
  */
 function mediareference_widget_value($element, $edit = FALSE) {
   if (!$edit) {
@@ -212,8 +215,11 @@ function mediareference_widget_settings($op, $widget) {
  * Process of our FAPI elements/widget
  */
 function mediareference_widget_process($element, $edit, &$form_state, $form) {
-
-  $defaults = $element['#default_value'];
+//  static $counter = 0;
+//  dpm('---- LAUNCH #' . $counter++);
+//  dpm($defaults, 'defaults #' . $element['#delta']);
+//  dpm($edit, 'edit #' . $element['#delta']);
+  $defaults =& $element['#default_value'];
   $field = content_fields($element['#field_name'], $element['#type_name']);
   $thumb_field = NULL;
   $imagecache_preset = NULL;
@@ -241,8 +247,9 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
 
     if ($type && (empty($defaults['filepath']) || empty($defaults['fid']))) {
       if ($thumb_field = $field['widget']['thumbnail_field_' . $type]) {
-        $defaults['filepath'] = $node->{$thumb_field}[0]['filepath'];
-        $defaults['fid'] = $node->{$thumb_field}[0]['fid'];
+        // change also $element['#value']['filepath'] because it is processed in Insert module
+        $defaults['filepath'] = $element['#value']['filepath'] = $node->{$thumb_field}[0]['filepath'];
+        $defaults['fid'] = $element['#value']['fid'] = $node->{$thumb_field}[0]['fid'];
       }
     }
 
@@ -462,10 +469,15 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
         $bak = $form[$field_name][$old_key];
         unset($form[$field_name][$old_key]);
         $form[$field_name][$new_key] = $bak;
+        $form[$field_name][$new_key]['#delta'] = $new_key;
 
         $bak = $form_state['values'][$field_name][$old_key];
         unset($form_state['values'][$field_name][$old_key]);
         $form_state['values'][$field_name][$new_key] = $bak;
+
+        $bak = $_POST[$field_name][$old_key];
+        unset($_POST[$field_name][$old_key]);
+        $_POST[$field_name][$new_key] = $bak;
       }
       $new_key++;
     }
@@ -491,12 +503,18 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
 
   if ($action == 'update') {
     if (isset($_SESSION['lightframe']) && isset($_SESSION['lightframe']['nid']) && ($nid = intval($_SESSION['lightframe']['nid']))) {
+      unset($_SESSION['lightframe']['nid']);
       $node = node_load(array('nid' => $nid));
       if ($node) {
+        // TODO: rethink this
         $form_state['values'][$field_name][$delta_action]['nid'] = $nid;
         $form_state['values'][$field_name][$delta_action]['type'] = $node->type;
         $form_state['values'][$field_name][$delta_action]['title'] = $node->title;
-        $_POST[$field_name][$delta] = $form_state['values'][$field_name][$delta_action];
+        if ($thumb_field = $field['widget']['thumbnail_type_fields'][$node->type]) {
+          $form_state['values'][$field_name][$delta_action]['fid'] = $node->{$thumb_field}[0]['fid'];
+          $form_state['values'][$field_name][$delta_action]['filepath'] = $node->{$thumb_field}[0]['filepath'];
+        }
+        $_POST[$field_name][$delta_action] = $form_state['values'][$field_name][$delta_action];
 
         module_load_include('inc', 'content', 'includes/content.node_form');
         $form_element = content_field_form($form, $form_state, $field);
