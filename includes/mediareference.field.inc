@@ -6,6 +6,40 @@
  * CCK field hook implementations for mediareference field
  */
 
+
+function mediareference_field_subfields($type = NULL) {
+  static $subfields = NULL;
+
+  // initialize
+  if (is_null($subfields)) {
+    $subfields = array();
+    $subfields['title'] = array();
+    $subfields['description'] = array();
+    $subfields['link'] = array();
+    $subfields['colour'] = array();
+    $subfields['slide_animation'] = array(
+      'data' => TRUE,
+    );
+    $subfields['slide_delay'] = array(
+      'data' => TRUE,
+    );
+
+    // load defaults
+    $defaults = array(
+      'data' => FALSE,
+    );
+    foreach ($subfields as $id => $subfield) {
+    	$subfields[$id] = array_merge($defaults, $subfield);
+    }
+  }
+
+  if ($type === 'names') {
+    return array_keys($subfields);
+  }
+
+  return $subfields;
+}
+
 //=========================================
 //    CCK FIELD HOOKS
 //=========================================
@@ -35,6 +69,7 @@ function mediareference_field_settings($op, $field) {
       $columns['description'] = array('type' => 'text', 'not null' => FALSE, 'sortable' => FALSE, 'views' => TRUE);
       $columns['link'] = array('type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '', 'views' => TRUE);
       $columns['colour'] = array('type' => 'varchar', 'length' => 7, 'not null' => FALSE, 'sortable' => FALSE, 'default' => '', 'views' => TRUE);
+      $columns['data'] = array('type' => 'text', 'serialize' => TRUE, 'views' => TRUE);
       return $columns;
 
     case 'form':
@@ -58,7 +93,8 @@ function mediareference_field_settings($op, $field) {
         '#tree' => TRUE,
       );
 
-      foreach (array('title', 'description', 'link', 'colour') as $type) {
+      $subfields = mediareference_field_subfields('names');
+      foreach ($subfields as $type) {
         $form['mediareference_fields'][$type] = array(
           '#type' => 'radios',
           '#title' => t('Field %type', array('%type' => drupal_ucfirst($type))),
@@ -71,12 +107,39 @@ function mediareference_field_settings($op, $field) {
         );
       }
 
+      $form['mediareference_formatters'] = array(
+        '#title' => t('Formatters Settings'),
+        '#type' => 'fieldset',
+        '#collapsible' => FALSE,
+        '#collapsed' => FALSE,
+        '#tree' => TRUE,
+      );
+
+      $form['mediareference_formatters']['slideshow'] = array(
+        '#title' => t('Mediareference Slideshow Formatter'),
+        '#type' => 'fieldset',
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
+        '#tree' => TRUE,
+      );
+
+      $form['mediareference_formatters']['slideshow']['slide_delay_default'] = array(
+        '#title' => t('Default slide delay'),
+        '#type' => 'textfield',
+        '#size' => 4,
+        '#maxlength' => 4,
+        '#field_suffix' => 's',
+        '#default_value' => $field['mediareference_slideshow']['slide_delay_default'] ? $field['mediareference_slideshow']['slide_delay_default'] : 10,
+        '#description' => t('Default delay between automatically moving to the next.'),
+      );
+
       return $form;
 
     case 'save':
       $settings = nodereference_field_settings('save', $field);
       $settings[] = 'mediareference_fields';
       $settings[] = 'description_text_processing';
+      $settings[] = 'mediareference_formatters';
 
       return $settings;
 
@@ -90,19 +153,43 @@ function mediareference_field_settings($op, $field) {
  * Implementation of CCK hook_field()
  */
 function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
-  //dpm('mediareference_field() $op=' . $op);
+//  dpm('mediareference_field() $op=' . $op);
   switch ($op) {
     case 'load':
       module_load_include('inc', 'filefield', 'field_file');
+
+      if (empty($items)) {
+        return array();
+      }
+
       foreach ($items as $delta => &$item) {
-        if ($file = field_file_load($item['fid'])) {
-          $item['filepath'] = $file['filepath'];
+        // Despite hook_content_is_empty(), CCK still doesn't filter out
+        // empty items from $op = 'load', so we need to do that ourselves.
+        if (empty($item['nid']) || empty($item['fid']) || !($file = field_file_load($item['fid']))) {
+          $items[$delta] = NULL;
+        }
+        else {
+          $item['data'] = unserialize($item['data']);
+          if ($item['data'] === FALSE) {
+            $item['data'] = array();
+          }
+
+          // unserialize 'data'
+          mediareference_field_unserialize($item);
+
+          $item['data']['filepath'] = $file['filepath'];
+          $item['imagecache_preset'] = imagecache_preset($field['widget']['thumbnail_imagecache_preset']);
         }
       }
+
+      //dpm($items, 'mediareference_field($op = load)');
       break;
 
     case 'sanitize':
-      foreach ($items as $delta => $item) {
+      foreach ($items as $delta => &$item) {
+        // unserialize 'data'
+        mediareference_field_unserialize($item);
+
         $item_keys = array_keys($item);
         $sanitized_keys = array_merge(array('nid', 'fid', 'filepath'), array_keys(array_filter($field['mediareference_fields'])));
         // FIX: from PHP >= 5.1.0 we can do array_intersect_key() directly
@@ -155,4 +242,14 @@ function mediareference_field_formatter_info() {
  */
 function mediareference_content_is_empty($item, $field) {
   return nodereference_content_is_empty($item, $field);
+}
+
+
+function mediareference_field_unserialize(&$item) {
+  // Temporary fix to unserialize data serialized multiple times.
+  // See the FileField issue http://drupal.org/node/402860.
+  // And the CCK issue http://drupal.org/node/407446.
+  while (! empty($item['data']) && is_string($item['data'])) {
+    $item['data'] = unserialize($item['data']);
+  }
 }

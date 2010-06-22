@@ -17,9 +17,10 @@ function mediareference_elements() {
   $elements = array(
     'mediareference_widget' => array(
       '#input' => TRUE,
+      '#columns' => array('nid', 'fid', 'title', 'description', 'link', 'colour', 'data'),
       '#delta' => 0,
       '#process' => array('mediareference_widget_process'),
-      //'#value_callback' => 'mediareference_widget_value',
+      '#value_callback' => 'mediareference_widget_value',
       '#autocomplete_path' => FALSE,
     )
   );
@@ -51,13 +52,19 @@ function mediareference_widget(&$form, &$form_state, $field, $items, $delta = 0)
     '#type' => $field['widget']['type'],
     '#default_value' => isset($items[$delta]) ? $items[$delta] : NULL,
     '#after_build' => array('mediareference_widget_after_build'),
-    //'#value_callback' => 'mediareference_widget_value',
   );
+
+  $subfields = mediareference_field_subfields();
 
   // apply Mediareference special fields settings from CCK settings form
   foreach ($field['mediareference_fields'] as $type => $mode) {
-    if ($mode != MEDIAREF_FIELD_DISABLED) {
-      $element[$type]['#required'] = ($mode == MEDIAREF_FIELD_REQUIRED ? TRUE : FALSE);
+    if (isset($subfields[$type]) && ($mode != MEDIAREF_FIELD_DISABLED)) {
+      if ($subfields[$type]['data']) {
+        $element['data'][$type]['#required'] = ($mode == MEDIAREF_FIELD_REQUIRED ? TRUE : FALSE);
+      }
+      else {
+        $element[$type]['#required'] = ($mode == MEDIAREF_FIELD_REQUIRED ? TRUE : FALSE);
+      }
     }
   }
 
@@ -86,28 +93,18 @@ function mediareference_widget_after_build($form, &$form_state) {
  * check mediareference_elements or mediareference_widget
  */
 function mediareference_widget_value($element, $edit = FALSE) {
-  if (!$edit) {
-    $file = field_file_load($element['#default_value']['fid']);
-    $item = $element['#default_value'];
-    $item['filepath'] = $file['filepath'];
-  }
-  else {
-    $item = array_merge((array) $element['#default_value'], $edit);
-    //$field = content_fields($element['#field_name'], $element['#type_name']);
+  $item = array();
 
-    // Load file if the FID has changed so that it can be saved by CCK.
-    $file = field_file_load($item['fid']);
-    $item['filepath'] = $file['filepath'];
-
-    // If the file entry doesn't exist, don't save anything.
-    if (empty($file)) {
-      $item = array();
-    }
+  if (isset($element['#default_value']) && is_array($element['#default_value'])) {
+    $item = &$element['#default_value'];
+    mediareference_field_unserialize($item);
   }
 
-  // Merge file and item data so it is available to all widgets.
-  // $item = array_merge($item, $file);
+  if ($edit) {
+    $item = array_merge($item, $edit);
+  }
 
+//  dpm($item, 'mediareference_widget_value()');
   return $item;
 }
 
@@ -215,7 +212,8 @@ function mediareference_widget_settings($op, $widget) {
  * Process of our FAPI elements/widget
  */
 function mediareference_widget_process($element, $edit, &$form_state, $form) {
-  $defaults =& $element['#default_value'];
+//  dpm('mediareference_widget_process()');
+  $defaults =& $element['#value'];
   $field = content_fields($element['#field_name'], $element['#type_name']);
   $thumb_field = NULL;
   $imagecache_preset = NULL;
@@ -225,7 +223,9 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
 //  if (is_array($edit) && !empty($edit)) {
 //    static $counter = 1;
 //    dpm('---- LAUNCH #' . $counter++);
-//    dpm($defaults, 'defaults #' . $element['#delta']);
+//    dpm($element, 'element #' . $element['#delta']);
+//    dpm($element['#default_value'], 'defaults #' . $element['#delta']);
+//    dpm($element['#value'], 'values #' . $element['#delta']);
 //    dpm($edit, 'edit #' . $element['#delta']);
 //  }
 
@@ -345,6 +345,38 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
         '#title' => t('Type'),
         '#value' => $type,
         '#weight' => -2,
+      );
+    }
+    // placeholder.. will be serialized into the data column. this is a place for widgets
+    // to put additional data.
+    $element['data'] = array_merge(array('#tree' => 'true', '#weight' => 18), $element['data']);
+
+    $element['data']['type'] = array(
+      '#type' => 'hidden',
+      '#value' => $type,
+    );
+
+    if (isset($element['data']['slide_animation'])) {
+      $element['data']['slide_animation'] += array(
+        '#title' => t('Slide animation'),
+        '#type' => 'select',
+        '#options' => array(
+          'slide' => 'slide',
+          'fade' => 'fade',
+         ),
+        '#default_value' => $defaults['data']['slide_animation'],
+      );
+    }
+
+    if (isset($element['data']['slide_delay'])) {
+      $element['data']['slide_delay'] += array(
+        '#title' => t('Slide delay'),
+        '#type' => 'textfield',
+        '#size' => 4,
+        '#maxlength' => 4,
+        '#field_suffix' => 's',
+        '#default_value' => !empty($defaults['data']['slide_delay']) ? $defaults['data']['slide_delay'] : $field['mediareference_formatters']['slideshow']['slide_delay_default'],
+        '#description' => t('Delay between automatically moving to the next.'),
       );
     }
   }
@@ -511,6 +543,11 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
           $form_state['values'][$field_name][$delta_action]['fid'] = $node->{$thumb_field}[0]['fid'];
           $form_state['values'][$field_name][$delta_action]['filepath'] = $node->{$thumb_field}[0]['filepath'];
         }
+
+        $form_state['values'][$field_name][$delta_action]['data']['type'] = $node->type;
+        $form_state['values'][$field_name][$delta_action]['data']['slide_animation'] = 'slide';
+        $form_state['values'][$field_name][$delta_action]['data']['slide_delay'] = $field['mediareference_formatters']['slideshow']['slide_delay_default'];
+
         $_POST[$field_name][$delta_action] = $form_state['values'][$field_name][$delta_action];
 
         module_load_include('inc', 'content', 'includes/content.node_form');
