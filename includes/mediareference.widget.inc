@@ -222,10 +222,12 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
   $preview = '';
 
   // DEBUG
-//  static $counter = 1;
-//  dpm('---- LAUNCH #' . $counter++);
-//  dpm($defaults, 'defaults #' . $element['#delta']);
-//  dpm($edit, 'edit #' . $element['#delta']);
+//  if (is_array($edit) && !empty($edit)) {
+//    static $counter = 1;
+//    dpm('---- LAUNCH #' . $counter++);
+//    dpm($defaults, 'defaults #' . $element['#delta']);
+//    dpm($edit, 'edit #' . $element['#delta']);
+//  }
 
   if ($field['widget']['insert']) {
     $element['#after_build'][] = 'insert_process';
@@ -448,14 +450,7 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
   // Reset cached ids, so that they don't affect the actual form we output.
   form_clean_id(NULL, TRUE);
 
-  // Sort the $form_state['values'] we just built *and* the incoming $_POST data
-  // according to d-n-d reordering.
   unset($form_state['values'][$field_name][$field['field_name'] .'_add_more']);
-  foreach ($_POST[$field_name] as $delta => $item) {
-    $form_state['values'][$field_name][$delta]['_weight'] = $item['_weight'];
-  }
-  $form_state['values'][$field_name] = _content_sort_items($field, $form_state['values'][$field_name]);
-  $_POST[$field_name] = _content_sort_items($field, $_POST[$field_name]);
 
   if ($action == 'remove') {
     unset($form[$field_name][$delta_action]);
@@ -467,11 +462,11 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
     $new_key = 0;
     $bak = array();
     foreach ($items as $old_key => $item) {
+      // reindex'em all, do not use $old_key >= $delta_action
       if ($old_key != $new_key) {
         $bak = $form[$field_name][$old_key];
         unset($form[$field_name][$old_key]);
         $form[$field_name][$new_key] = $bak;
-        $form[$field_name][$new_key]['#delta'] = $new_key;
 
         $bak = $form_state['values'][$field_name][$old_key];
         unset($form_state['values'][$field_name][$old_key]);
@@ -527,6 +522,40 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
     }
   }
 
+  //dpm($_POST[$field_name], 'POST before sort');
+
+  // Sort the $form_state['values'] we just built *and* the incoming $_POST data
+  // according to d-n-d reordering.
+  foreach ($_POST[$field_name] as $delta => $item) {
+    $form_state['values'][$field_name][$delta]['_weight'] = $item['_weight'];
+  }
+
+  // no we construct vector $old_key => $new_key
+  $vector = $form_state['values'][$field_name];
+  uasort($vector, '_content_sort_items_helper');
+  $vector = array_flip(array_flip(array_keys($vector)));
+  $form_field_copy = $form[$field_name];
+  $max = count($vector) + 1;
+  foreach ($vector as $old_delta => $delta) {
+    if ($old_delta !== $delta) {
+      $form[$field_name][$delta] = $form_field_copy[$old_delta];
+    }
+
+    $form[$field_name][$delta]['#delta'] = $delta;
+    $form[$field_name][$delta]['#weight'] = $delta;
+    if (isset($form[$field_name][$delta]['_weight'])) {
+      $form[$field_name][$delta]['_weight']['#delta'] = $max;
+      $form[$field_name][$delta]['_weight']['#default_value'] = $delta;
+    }
+  }
+  unset($form_field_copy);
+  //dpm($vector, 'vector');
+
+  $form_state['values'][$field_name] = _content_sort_items($field, $form_state['values'][$field_name]);
+  $_POST[$field_name] = _content_sort_items($field, $_POST[$field_name]);
+
+  //dpm($form[$field_name], 'unbuild field_form');
+
   // Save rebuilded (but unprocessed!) form back to form cache.
   form_set_cache($form_build_id, $form, $form_state);
 
@@ -538,6 +567,9 @@ function mediareference_widget_js($type_name, $field_name, $delta_action, $actio
   $form = form_builder($_POST['form_id'], $form, $form_state);
   $field_form = $form[$field_name];
   unset($field_form['#prefix'], $field_form['#suffix']);
+  //dpm($form[$field_name], 'field_form');
+  //dpm($form_state['values'][$field_name], 'form_values');
+  //dpm($_POST[$field_name], 'POST');
 
   // If a newly inserted widget contains AHAH behaviors, they normally won't
   // work because AHAH doesn't know about those - it just attaches to the exact
