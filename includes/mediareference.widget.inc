@@ -215,15 +215,17 @@ function mediareference_widget_settings($op, $widget) {
  * Process of our FAPI elements/widget
  */
 function mediareference_widget_process($element, $edit, &$form_state, $form) {
-//  static $counter = 0;
-//  dpm('---- LAUNCH #' . $counter++);
-//  dpm($defaults, 'defaults #' . $element['#delta']);
-//  dpm($edit, 'edit #' . $element['#delta']);
   $defaults =& $element['#default_value'];
   $field = content_fields($element['#field_name'], $element['#type_name']);
   $thumb_field = NULL;
   $imagecache_preset = NULL;
   $preview = '';
+
+  // DEBUG
+//  static $counter = 1;
+//  dpm('---- LAUNCH #' . $counter++);
+//  dpm($defaults, 'defaults #' . $element['#delta']);
+//  dpm($edit, 'edit #' . $element['#delta']);
 
   if ($field['widget']['insert']) {
     $element['#after_build'][] = 'insert_process';
@@ -246,7 +248,7 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
     $type = $defaults['type'];
 
     if ($type && (empty($defaults['filepath']) || empty($defaults['fid']))) {
-      if ($thumb_field = $field['widget']['thumbnail_field_' . $type]) {
+      if ($thumb_field = $field['widget']['thumbnail_type_fields'][$type]) {
         // change also $element['#value']['filepath'] because it is processed in Insert module
         $defaults['filepath'] = $element['#value']['filepath'] = $node->{$thumb_field}[0]['filepath'];
         $defaults['fid'] = $element['#value']['fid'] = $node->{$thumb_field}[0]['fid'];
