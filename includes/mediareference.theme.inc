@@ -20,33 +20,29 @@ function theme_mediareference_widget($element) {
  *  Theme function for default mediareference field formatter
  */
 function theme_mediareference_formatter_default($element = NULL) {
-  $output = '';
 
   if (empty($element['#item'])) {
-    return $output;
+    return '';
   }
 
-  $data = $element['#item'];
-  //dpm($data, 'formatter_default');
+  // PREPROCESS
+  $item = $element['#item'];
 
-  // TODO: rethink this
-  $field = content_fields($element['#field_name'], $element['#type_name']);
-  $nid = $data['safe_nid'];
-  $node = node_load(array('nid' => $nid));
-  $type = $node->type;
+  //dpm($item, 'formatter_default');
+  $nid = $item['safe_nid'];
+  $type = $item['type'];
+  $title = isset($item['safe_title']) ? $item['safe_title'] : '';
+  $description = isset($item['safe_description']) ? $item['safe_description'] : '';
+  $link = isset($item['safe_link']) ? $item['safe_link'] : '';
+  $color = isset($item['safe_color']) ? $item['safe_color'] : '';
   $thumbnail = '';
-
-  if ($thumb_field = $field['widget']['thumbnail_type_fields'][$type]) {
-    $filepath = $node->{$thumb_field}[0]['filepath'];
-    if ($imagecache_preset = imagecache_preset($field['widget']['thumbnail_imagecache_preset'])) {
-      $thumbnail = theme('imagecache', $imagecache_preset['presetname'], $filepath);
-    }
+  if (isset($item['imagecache_preset']) && isset($item['filepath'])) {
+    $thumbnail = theme('imagecache', $item['imagecache_preset'], $item['filepath']);
   }
 
-  $title = isset($data['safe_title']) ? $data['safe_title'] : '';
-  $description = isset($data['safe_description']) ? $data['safe_description'] : '';
-  $link = isset($data['safe_link']) ? $data['safe_link'] : '';
-  $color = isset($data['safe_color']) ? $data['safe_color'] : '';
+
+  // RENDER
+  $output = '';
 
   $output .= '<div class="mediareference-item '. $type .'">';
 
@@ -60,6 +56,7 @@ function theme_mediareference_formatter_default($element = NULL) {
     $output .= '<h3>'. $title .'</h3>';
     $output .= $description;
   }
+
   $output .= '</div>';
 
   return $output;

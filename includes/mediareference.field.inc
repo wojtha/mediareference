@@ -187,8 +187,14 @@ function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
 
     case 'sanitize':
       foreach ($items as $delta => &$item) {
+
         // unserialize 'data'
         mediareference_field_unserialize($item);
+
+        if (is_array($item['data'])) {
+          $item = array_merge($item, $item['data']);
+          unset($item['data']);
+        }
 
         $item_keys = array_keys($item);
         $sanitized_keys = array_merge(array('nid', 'fid', 'filepath'), array_keys(array_filter($field['mediareference_fields'])));
@@ -206,6 +212,12 @@ function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
           }
 
           $items[$delta]['safe_' . $key] = $data;
+        }
+
+        // resource intensive?
+        if (($file = field_file_load($item['fid'])) && ($preset = imagecache_preset($field['widget']['thumbnail_imagecache_preset']))) {
+          $item['imagecache_preset'] = $preset['presetname'];
+          $item['filepath'] = $file['filepath'];
         }
       }
     break;
