@@ -78,7 +78,22 @@ function mediareference_widget(&$form, &$form_state, $field, $items, $delta = 0)
  */
 function mediareference_widget_after_build($form, &$form_state) {
 
-  // attach CSS and JS files
+  // preload colorpicker JS and CSS
+  if (module_exists('colorpicker')) {
+    $colorpicker_path = drupal_get_path('module', 'colorpicker');
+
+    // Add Farbtastic color picker
+    drupal_add_css('misc/farbtastic/farbtastic.css');
+    drupal_add_js('misc/farbtastic/farbtastic.js');
+
+    // Add our custom js and css for our colorpicker
+    drupal_add_js("$colorpicker_path/js/colorpicker.js");
+    drupal_add_css("$colorpicker_path/css/colorpicker.css");
+  }
+
+
+  // attach our CSS and JS files after dependendencies
+  // (it allows us to override theirs CSS/JS if needed)
   $module_path = drupal_get_path('module', 'mediareference');
   drupal_add_css($module_path .'/includes/mediareference.css');
   drupal_add_js($module_path .'/includes/mediareference.js');
@@ -235,8 +250,6 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
   }
 
   if (empty($defaults['nid'])) {
-    $element['#prefix'] = '<div class="mediareference empty">';
-    $element['#suffix'] = '</div>';
     $element['info'] = array('#value' => t('None <em>(use Browse button to attach some media)</em>'));
   }
   else {
@@ -263,8 +276,13 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
       }
     }
 
-    $element['#prefix'] = '<div class="mediareference '. $type .'">';
-    $element['#suffix'] = '</div>';
+    if (empty($element['data'])) {
+      $element['data'] = array();
+    }
+    else {
+      // make sure that data is unserialized
+      mediareference_field_unserialize($element);
+    }
 
     $element['type'] = array(
       '#type' => 'hidden',
@@ -412,6 +430,12 @@ function mediareference_widget_process($element, $edit, &$form_state, $form) {
     '#weight' => 4,
   );
 
+  // single element fix
+  if (($field['multiple'] == 0) && ! mediareference_is_ahah_request()) {
+    $element['#prefix'] = '<div id="'. $field_name_css .'-items">';
+    $element['#suffix'] = '</div>';
+  }
+
   return $element;
 }
 
@@ -442,6 +466,9 @@ function mediareference_widget_insert_after_build($element) {
  * @param string $action
  */
 function mediareference_widget_js($type_name, $field_name, $delta_action, $action) {
+
+  // set the global property
+  mediareference_is_ahah_request(TRUE);
 
   // load the field definition and check if arguments from url is right
   $field = content_fields($field_name, $type_name);

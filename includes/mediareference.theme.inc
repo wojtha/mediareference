@@ -13,7 +13,17 @@
  * Theme function for mediareference widget
  */
 function theme_mediareference_widget($element) {
-  return theme('form_element', $element, $element['#children']);
+  $prefix = $suffix = '';
+
+  $type = 'empty';
+  if (!empty($element['type']) && !empty($element['type']['#value'])) {
+    $type = $element['type']['#value'];
+  }
+
+  $prefix = '<div class="mediareference-item mediareference-'. $type .'-item">';
+  $suffix = '</div>';
+
+  return $prefix . theme('form_element', $element, $element['#children']) . $suffix;
 }
 
 /**

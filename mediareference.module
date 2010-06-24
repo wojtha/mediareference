@@ -346,6 +346,26 @@ function mediareference_filter_children(&$element, $attributes = FALSE) {
   return $children;
 }
 
+/**
+ * Setter and getter for AHAH callback switch. This is emulation of a global variable
+ * which tell us if the current proccessed request is AHAH or not.
+ *
+ * @param boolean $set
+ *    Set AHAH callback value
+ *
+ * @return boolean
+ *    Returns stored AHAH value, default is FALSE
+ */
+function mediareference_is_ahah_request($set = NULL) {
+  static $ahah = FALSE;
+
+  if (!is_null($set)) {
+    $ahah = (bool) $set;
+  }
+
+  return $ahah;
+}
+
 //=====================================
 //   LIGHTFRAME MINI API
 //=====================================
