@@ -188,6 +188,12 @@ function mediareference_field($op, $node, $field, &$items, $teaser, $page) {
     case 'sanitize':
       foreach ($items as $delta => &$item) {
 
+        // handle empty field
+        if (is_null($item)) {
+          $item = array();
+          continue;
+        }
+
         // unserialize 'data'
         mediareference_field_unserialize($item);
 
