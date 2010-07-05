@@ -143,9 +143,23 @@ function mediareference_field_settings($op, $field) {
 
       return $settings;
 
-     case 'views data':
-       // TODO: look at filefield for inspiration
-      return nodereference_field_settings('views data', $field);
+    case 'views data':
+      // TODO: look at filefield for inspiration
+      // return nodereference_field_settings('views data', $field);
+      // TODO: finish/rewrite this?! ;)
+      $data = content_views_field_views_data($field);
+      $db_info = content_database_info($field);
+      $table_alias = content_views_tablename($field);
+
+      // Relationship: add a relationship for related node.
+      $data[$table_alias][$field['field_name'] . '_nid']['relationship'] = array(
+        'base' => 'node',
+        'field' => $db_info['columns']['nid']['column'],
+        'handler' => 'content_handler_relationship',
+        'label' => t($field['widget']['label']),
+        'content_field_name' => $field['field_name']
+      );
+      return $data;
   }
 }
 
