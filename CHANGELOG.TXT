@@ -4,17 +4,22 @@ _______________________________________________________________________________
    CHANGELOG
 _______________________________________________________________________________
 
+ 2010-07-06  Version 0.4.3 Bugfix release
+======================================================
+		# Fixed broken Insert support
+    # Added Views relationships support
+
  2010-06-30  Version 0.4.2 Bugfix release
 ======================================================
 		# Changelog extracted from Installation.txt to separate file
-    # Version change 1.0 => 0.1  
-    # Fixed empty field loading  
+    # Version change 1.0 => 0.1
+    # Fixed empty field loading
+
 
  2010-06-24  Version 0.4.1 Bugfix release
 ======================================================
     # Fixed Colour Picker JS widget on create node form.
     # Fixed broken AHAH when mediareference field was in single value mode.
-
 
  2010-06-23 Version 0.4 Feature release
 =====================================================
@@ -22,19 +27,16 @@ _______________________________________________________________________________
    + "Slide delay" and "Slide animation" fields
    # Better default formatter, values processing during sanitize.
 
-
  2010-06-22 Version 0.3.1 Bugfix release
 ===================================================
    # Fixed bad sorting in AHAH form processing
    # Fixed thumbnail disappearing (bug in widget process)
-
 
  2010-06-21 Version 0.3 bugfix and feature release
 =========================================
    + Initial Insert module support
    # Better Mediareference special fields widget settings
    # Fixed PHP 5.3.x incompatibility: in theme_mediareference_widget()
-
 
  2010-06-16 - Version 0.2.1 Bugfix release
 ===========================================
@@ -43,7 +45,6 @@ _______________________________________________________________________________
   # Fixed mixin' of field values with attributes
   # Fixed reloading of old field content from updated node object when item
     count is decreased to 0
-
 
  2010-06-14 - Version 0.2 Features release
 ===========================================

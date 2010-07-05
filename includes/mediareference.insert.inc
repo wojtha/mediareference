@@ -12,7 +12,7 @@
 function mediareference_insert_widgets() {
   return array(
     'mediareference_widget' => array(
-      'wrapper' => '.mediareference',
+      'wrapper' => '.mediareference-item',
       'fields' => array(
         'alt' => 'input[name$="[alt]"], textarea[name$="[alt]"]',
         'title' => 'input[name$="[title]"], textarea[name$="[title]"]',
