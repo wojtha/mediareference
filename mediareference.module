@@ -232,7 +232,7 @@ function mediareference_browser($type_name, $field_name) {
   $glue = '';
   foreach ($referenceable_types as $type) {
     if (user_access("create $type content")) {
-      $add_content .= $glue . l(t('add @type', array('@type' => $type)), 'node/add/'. $type, array('query' => $destination));
+      $add_content .= $glue . l(t('add @type', array('@type' => $type)), 'node/add/'. str_replace('_', '-', $type), array('query' => $destination));
       $glue = ', ';
     }
   }
