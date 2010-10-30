@@ -1,0 +1,40 @@
+<?php
+
+//=========================================
+//    DRUPAL HOOKS
+//=========================================
+
+/**
+ * Implementation of hook_init()
+ */
+function medref_lightbox2_init() {
+  medref_lightbox2_add_js();
+}
+
+//=====================================
+//   MODULE FUNCTIONS
+//=====================================
+
+/**
+ * Add javascript and stylesheets to the child page.
+ */
+function medref_lightbox2_add_js() {
+  static $processed = FALSE;
+
+  // Make sure external resources are not included more than once.
+  if ($processed) {
+    return;
+  }
+  $processed = TRUE;
+
+  $module_path = drupal_get_path('module', 'medref_lightbox2');
+  //drupal_add_css($module_path .'/medref_lightbox2.css');
+  drupal_add_js($module_path .'/medref_lightbox2.js');
+}
+
+/**
+ * Close lightframe modal menu callback.
+ */
+function medref_lightbox2_mediareference_browser_close() {
+  drupal_add_js('parent.LightframeUpdate();parent.$.colorbox.close();', 'inline');
+}
