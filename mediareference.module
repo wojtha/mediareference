@@ -48,6 +48,7 @@ function mediareference_init() {
   if (!empty($_REQUEST['lightframe'])) {
     mediareference_lightframe_child_js();
   }
+
 }
 
 /**
@@ -55,36 +56,50 @@ function mediareference_init() {
  */
 function mediareference_menu() {
   $items = array();
+  $path = drupal_get_path('module', 'mediareference');
 
   // arguments: type/field/id/action
   $items['mediareference_js/%/%/%/%'] = array(
     'title' => 'Mediareference Ahah Controller' ,
     'page callback' => 'mediareference_widget_js',
     'page arguments' => array(1, 2, 3, 4),
-    'access arguments' => array('access content'),
+    'access arguments' => array('access mediareference browser'),
     'type' => MENU_CALLBACK,
     'file' => 'mediareference.widget.inc',
-    'file path' => drupal_get_path('module', 'mediareference') .'/includes',
+    'file path' => $path .'/includes',
   );
   $items['mediabrowser/%/%'] = array(
     'title' => 'Mediabrowser',
     'page arguments' => array(1, 2),
     'page callback' => 'mediareference_browser',
-    'access arguments' => array('access content'),
+    'access arguments' => array('access mediareference browser'),
     'type' => MENU_CALLBACK,
   );
   $items['lightframe/close'] = array(
     'title' => 'Close Lightframe',
     'page callback' => 'mediareference_lightframe_close_callback',
-    'access arguments' => array('access content'),
+    'access arguments' => array('access mediareference browser'),
     'type' => MENU_CALLBACK,
   );
 
   return $items;
 }
 
+/**
+ * Implementation of hook_perm
+ */
+function mediareference_perm(&$form, $form_state, $form_id) {
+  return array(
+    'access mediareference browser',
+    'administer mediareference'
+  );
+}
+
+/**
+ * Implementation of hook_form_alter
+ */
 function mediareference_form_alter(&$form, $form_state, $form_id) {
-  // Here we simply want to install a form after_build callback.
+  // Here we simply want to install a form-after_build-callback.
   if (!empty($_REQUEST['lightframe'])) {
     if (!isset($form['#after_build'])) {
       $form['#after_build'] = array();
@@ -116,6 +131,9 @@ function mediareference_form_alter(&$form, $form_state, $form_id) {
 
 }
 
+/**
+ * Form after build handler
+ */
 function mediareference_lightframe_form_after_build($form, &$form_state) {
   mediareference_lightframe_child_js();
   return $form;
