@@ -5,8 +5,9 @@ _______________________________________________________________________________
 _______________________________________________________________________________
 
 1. Install the module.
-2. Check/update imagecache preset or create new
-3. Create some Mediareference fields
-4. Check/update mediabrowser view
+2. Install one from popup providers.
+3. Check/update imagecache preset or create new
+4. Create some Mediareference fields
+5. Check/update mediabrowser view
    - Note that node type filter restrictions to certain types are handled
      dynamically.
