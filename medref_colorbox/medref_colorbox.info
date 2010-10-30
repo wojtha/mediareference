@@ -1,6 +1,7 @@
 ; $Id: $
 name = MediaReference Colorbox support
 description = Uses Colorbox as an popup provider.
+dependencies[] = mediareference
 dependencies[] = colorbox
 package = CCK
 core = 6.x

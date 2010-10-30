@@ -1,6 +1,7 @@
 ; $Id: $
 name = MediaReference Lightbox2 support
 description = Uses Lightbox2 as an popup provider.
+dependencies[] = mediareference
 dependencies[] = lightbox2
 package = CCK
 core = 6.x
