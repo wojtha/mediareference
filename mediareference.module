@@ -434,7 +434,8 @@ function mediareference_lightframe_close(&$form_state, $args = array()) {
  */
 function mediareference_lightframe_close_callback() {
   mediareference_lightframe_child_js();
-  drupal_add_js('parent.LightframeUpdate();parent.Lightbox.end("forceClose");', 'inline');
+  // invoke closing popup function
+  module_invoke_all('mediareference_browser_close');
   return '';
 }
 

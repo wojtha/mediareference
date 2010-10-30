@@ -1,0 +1,40 @@
+<?php
+
+//=========================================
+//    DRUPAL HOOKS
+//=========================================
+
+/**
+ * Implementation of hook_init()
+ */
+function mediareference_lb2_init() {
+  mediareference_lb2_add_js();
+}
+
+//=====================================
+//   MODULE FUNCTIONS
+//=====================================
+
+/**
+ * Add javascript and stylesheets to the child page.
+ */
+function mediareference_lb2_add_js() {
+  static $processed = FALSE;
+
+  // Make sure external resources are not included more than once.
+  if ($processed) {
+    return;
+  }
+  $processed = TRUE;
+
+  $module_path = drupal_get_path('module', 'mediareference_lb2');
+  //drupal_add_css($module_path .'/mediareference_lb2.css');
+  drupal_add_js($module_path .'/mediareference_lb2.js');
+}
+
+/**
+ * Close lightframe modal menu callback.
+ */
+function mediareference_lb2_mediareference_browser_close() {
+  drupal_add_js('parent.LightframeUpdate();parent.Lightbox.end("forceClose");', 'inline');
+}
