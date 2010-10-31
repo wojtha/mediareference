@@ -7,8 +7,8 @@
 /**
  * Implementation of hook_init()
  */
-function medref_lightbox2_init() {
-  medref_lightbox2_add_js();
+function medref_colorbox_init() {
+  medref_colorbox_add_js();
 }
 
 //=====================================
@@ -18,7 +18,7 @@ function medref_lightbox2_init() {
 /**
  * Add javascript and stylesheets to the child page.
  */
-function medref_lightbox2_add_js() {
+function medref_colorbox_add_js() {
   static $processed = FALSE;
 
   // Make sure external resources are not included more than once.
@@ -27,14 +27,14 @@ function medref_lightbox2_add_js() {
   }
   $processed = TRUE;
 
-  $module_path = drupal_get_path('module', 'medref_lightbox2');
-  //drupal_add_css($module_path .'/medref_lightbox2.css');
-  drupal_add_js($module_path .'/medref_lightbox2.js');
+  $module_path = drupal_get_path('module', 'medref_colorbox');
+  //drupal_add_css($module_path .'/medref_colorbox.css');
+  drupal_add_js($module_path .'/medref_colorbox.js');
 }
 
 /**
  * Close lightframe modal menu callback.
  */
-function medref_lightbox2_mediareference_browser_close() {
+function medref_colorbox_mediareference_browser_close() {
   drupal_add_js('parent.LightframeUpdate();parent.$.colorbox.close();', 'inline');
 }
